@@ -1,4 +1,4 @@
-# navigation
+# Small Point-LIO
 
 ## notes
 
