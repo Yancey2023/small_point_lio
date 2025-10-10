@@ -1,10 +1,10 @@
-Small Point-LIO
+# Small Point-LIO
 
 Small Point-LIO is an advanced implementation of the [Point-LIO algorithm](https://github.com/hku-mars/Point-LIO), delivering a 2-3x speed improvement over the original.
 
 The default branch is for ROS2. If you want to run it without ros, please checkout the `main` branch.
 
-If you want to know why it so fast, please read [this](TODO).
+If you want to know why it so fast, please read [this](https://bbs.robomaster.com/article/813022).
 
 ## Contact
 
