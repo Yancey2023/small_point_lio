@@ -82,7 +82,7 @@ ros2 service call /map_save std_srvs/srv/Trigger
 
 ## Third-party
 
-Small Point-LIO is built in on and with the aid of the following open source projects. Credits are given to these pojects.
+Small Point-LIO is built in on and with the aid of the following open source projects. Credits are given to these projects.
 
 |                     project                     |                description                |                                            license                                            |
 | :---------------------------------------------: | :---------------------------------------: | :-------------------------------------------------------------------------------------------: |
