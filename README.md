@@ -6,6 +6,8 @@ The default branch is for ROS2. If you want to run it without ros, please checko
 
 If you want to know why it so fast, please read [this](https://bbs.robomaster.com/article/813022).
 
+<img src="./img/ACE.jpg" width="200px">
+
 ## Contact
 
 QQ group: 1070252119
