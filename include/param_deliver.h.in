@@ -1,0 +1,10 @@
+#pragma once
+
+#ifndef PARAM_DELIVER_H
+#define PARAM_DELIVER_H
+
+#include <string>
+
+static const std::string ROOT_DIR = "@CMAKE_CURRENT_SOURCE_DIR@";
+
+#endif// PARAM_DELIVER_H

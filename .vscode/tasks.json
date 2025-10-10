@@ -1,0 +1,15 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        // Build tasks
+        {
+            "label": "source",
+            "detail": "Sources the current workspace with shell",
+            "type": "shell",
+            "command": "source ${workspaceFolder}/livox_ros_driver2/share/livox_ros_driver2/local_setup.sh && printenv > ${workspaceFolder}/.env",
+            "problemMatcher": "$gcc"
+        }
+    ]
+}

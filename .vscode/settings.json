@@ -1,0 +1,9 @@
+{
+    "search.exclude": {
+        "./build": true
+    },
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    }
+}

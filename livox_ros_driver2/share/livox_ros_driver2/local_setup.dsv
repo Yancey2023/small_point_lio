@@ -1,0 +1,4 @@
+source;share/livox_ros_driver2/environment/ament_prefix_path.sh
+source;share/livox_ros_driver2/environment/library_path.sh
+source;share/livox_ros_driver2/environment/path.sh
+source;share/livox_ros_driver2/environment/pythonpath.sh
