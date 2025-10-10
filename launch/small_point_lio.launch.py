@@ -5,7 +5,7 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    rm_serial_driver_node = Node(
+    small_point_lio_node = Node(
         package="small_point_lio",
         executable="small_point_lio_node",
         name="small_point_lio",
@@ -48,4 +48,4 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([rm_serial_driver_node, static_base_link_to_livox_frame])
+    return LaunchDescription([small_point_lio_node, static_base_link_to_livox_frame])

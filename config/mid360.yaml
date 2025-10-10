@@ -5,8 +5,8 @@ small_point_lio:
 
     # 点云过滤
     point_filter_num: 1                        # 多少个点取一个点
-    min_distance: 0.5                          # 点云半径最小值，小于该数据点会被过滤
-    max_distance: 1000                         # 点云半径最大值，大于该数据点会被过滤
+    min_distance: 0.5                          # 点云半径最小值，小于该值会被过滤
+    max_distance: 1000                         # 点云半径最大值，大于该值会被过滤
     space_downsample: true                     # 是否启用点云降采样
     space_downsample_leaf_size: 0.2            # 点云降采样时使用的栅格大小
 
