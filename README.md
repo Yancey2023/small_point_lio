@@ -84,13 +84,14 @@ ros2 service call /map_save std_srvs/srv/Trigger
 
 Small Point-LIO is built in on and with the aid of the following open source projects. Credits are given to these projects.
 
-|                      project                       |                          description                           |                                            license                                            |
-| :------------------------------------------------: | :------------------------------------------------------------: | :-------------------------------------------------------------------------------------------: |
-|     [Eigen](https://gitlab.com/libeigen/eigen)     |           A C++ template library for linear algebra            | [Mozilla Public License Version 2.0](https://gitlab.com/libeigen/eigen/-/blob/master/LICENSE) |
-|   [yaml-cpp](https://github.com/jbeder/yaml-cpp)   |                A YAML parser and emitter in C++                |             [MIT License](https://github.com/jbeder/yaml-cpp/blob/master/LICENSE)             |
-|     [spdlog](https://github.com/gabime/spdlog)     |                    Fast C++ logging library                    |               [MIT License](https://github.com/gabime/spdlog/blob/v1.x/LICENSE)               |
-| [small_gicp](https://github.com/koide3/small_gicp) | Efficient and parallel algorithms for point cloud registration |            [MIT License](https://github.com/koide3/small_gicp/blob/master/LICENSE)            |
-|  [PCL](https://github.com/PointCloudLibrary/pcl)   |                      Point Cloud Library                       |        [BSD License](https://github.com/PointCloudLibrary/pcl/blob/master/LICENSE.txt)        |
+|                            project                             |                          description                           |                                            license                                            |
+| :------------------------------------------------------------: | :------------------------------------------------------------: | :-------------------------------------------------------------------------------------------: |
+|           [Eigen](https://gitlab.com/libeigen/eigen)           |           A C++ template library for linear algebra            | [Mozilla Public License Version 2.0](https://gitlab.com/libeigen/eigen/-/blob/master/LICENSE) |
+| [unordered_dense](https://github.com/martinus/unordered_dense) |          A fast & densely stored hashmap and hashset           |         [MIT License](https://github.com/martinus/unordered_dense/blob/main/LICENSE)          |
+|       [small_gicp](https://github.com/koide3/small_gicp)       | Efficient and parallel algorithms for point cloud registration |            [MIT License](https://github.com/koide3/small_gicp/blob/master/LICENSE)            |
+|         [yaml-cpp](https://github.com/jbeder/yaml-cpp)         |                A YAML parser and emitter in C++                |             [MIT License](https://github.com/jbeder/yaml-cpp/blob/master/LICENSE)             |
+|           [spdlog](https://github.com/gabime/spdlog)           |                    Fast C++ logging library                    |               [MIT License](https://github.com/gabime/spdlog/blob/v1.x/LICENSE)               |
+|        [PCL](https://github.com/PointCloudLibrary/pcl)         |                      Point Cloud Library                       |        [BSD License](https://github.com/PointCloudLibrary/pcl/blob/master/LICENSE.txt)        |
 
 ## License
 
