@@ -25,20 +25,22 @@ small_point_lio:
 
         # 雷达与IMU相对位姿
         extrinsic_est_en: false                    # 雷达与IMU的相对位姿是否通过预测得到
-        extrinsic_T: [-0.011, -0.02329, 0.004412]
+        extrinsic_T: [-0.011, -0.02329, 0.04412]
         extrinsic_R: [1.0, 0.0, 0.0,
                     0.0, 1.0, 0.0,
                     0.0, 0.0, 1.0]
 
         # 滤波器参数
+        # R
         laser_point_cov: 0.01                      # 激光点的协方差
+        imu_meas_acc_cov: 0.01                     # IMU测量的加速度协方差
+        imu_meas_omg_cov: 0.01                     # IMU测量的角速度协方差
+        # Q
         velocity_cov: 20.0                         # 速度的协方差
         acceleration_cov: 500.0                    # 加速度的协方差
         omg_cov: 1000.0                            # 角速度的协方差
         ba_cov: 0.0001                             # 加速度偏置的协方差
         bg_cov: 0.0001                             # 角速度偏置的协方差
-        imu_meas_acc_cov: 0.01                     # IMU测量的加速度协方差
-        imu_meas_omg_cov: 0.01                     # IMU测量的角速度协方差
         plane_thr: 0.1                             # 平面匹配阈值，越小表示越严格
         match_s: 81.0                              # 当前点是否在平面上的阈值，越小表示越严格
 
