@@ -33,7 +33,7 @@ namespace small_point_lio {
                     }
                     voxelgrid_sampling::VoxelgridSampling downsampler;
                     std::vector<Eigen::Vector3f> downsampled;
-                    downsampler.voxelgrid_sampling(pointcloud_to_save, downsampled, 0.02);
+                    downsampler.voxelgrid_sampling_omp(pointcloud_to_save, downsampled, 0.02);
                     pcl::PointCloud<pcl::PointXYZI> pcl_pointcloud;
                     pcl_pointcloud.reserve(downsampled.size());
                     for (const auto &point: downsampled) {
