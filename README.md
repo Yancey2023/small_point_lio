@@ -30,7 +30,7 @@ small_point_lio:
         min_distance: 0.5 # Minimum point cloud radius; points closer than this will be filtered
         max_distance: 1000 # Maximum point cloud radius; points farther than this will be filtered
         space_downsample: true # Whether to enable point cloud downsampling
-        space_downsample_leaf_size: 0.2 # Voxel size used for point cloud downsampling
+        space_downsample_leaf_size: 0.5 # Voxel size used for point cloud downsampling
 
         # IMU Processing
         gravity: [0.0, 0.0, -9.810] # Gravity vector
@@ -41,7 +41,7 @@ small_point_lio:
         acc_norm: 1.0 # IMU acceleration unit (multiple of gravity)
 
         # Map
-        map_resolution: 0.2 # Map resolution
+        map_resolution: 0.5 # Map resolution
         init_map_size: 10 # Number of points required to initialize the map
 
         # LiDAR-IMU Extrinsic Calibration
