@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(small_point_lio)
 
-## use C++17
+## use c++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -36,9 +36,7 @@ endif()
 #######################
 
 find_package(ament_cmake_auto REQUIRED)
-find_package(spdlog REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(yaml-cpp REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OpenMP REQUIRED)
 ament_auto_find_build_dependencies()
@@ -62,9 +60,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 target_link_libraries(${PROJECT_NAME}
-    spdlog::spdlog
     Eigen3::Eigen
-    yaml-cpp::yaml-cpp
     ${PCL_LIBRARIES}
 )
 

@@ -63,7 +63,7 @@ namespace small_point_lio {
 
     void Preprocess::on_imu_callback(const common::ImuMsg &imu_msg) {
         if (imu_msg.timestamp < last_timestamp_imu) {
-            SPDLOG_ERROR("imu loop back");
+            RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "imu loop back");
             return;
         }
         imu_deque.emplace_back(imu_msg);

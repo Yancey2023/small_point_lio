@@ -8,59 +8,52 @@
 
 namespace small_point_lio {
 
-    void Parameters::read_parameters(const YAML::Node &node) {
+    void Parameters::read_parameters(rclcpp::Node &node) {
         // 点云过滤
-        point_filter_num = node["point_filter_num"].as<int>();
-        auto min_distance = node["min_distance"].as<float>();
-        auto max_distance = node["max_distance"].as<float>();
+        point_filter_num = static_cast<int>(node.declare_parameter<long>("point_filter_num"));
+        auto min_distance = node.declare_parameter<float>("min_distance");
+        auto max_distance = node.declare_parameter<float>("max_distance");
         min_distance_squared = min_distance * min_distance;
         max_distance_squared = max_distance * max_distance;
-        space_downsample = node["space_downsample"].as<bool>();
-        space_downsample_leaf_size = node["space_downsample_leaf_size"].as<float>();
+        space_downsample = node.declare_parameter<bool>("space_downsample");
+        space_downsample_leaf_size = node.declare_parameter<float>("space_downsample_leaf_size");
 
         // IMU处理
-        gravity << node["gravity"][0].as<double>(),
-                node["gravity"][1].as<double>(),
-                node["gravity"][2].as<double>();
-        check_satu = node["check_satu"].as<bool>();
-        fix_gravity_direction = node["fix_gravity_direction"].as<bool>();
-        satu_acc = node["satu_acc"].as<double>() * 0.99;
-        satu_gyro = node["satu_gyro"].as<double>() * 0.99;
-        acc_norm = node["acc_norm"].as<double>();
+        std::vector<double> gravity_temp = node.declare_parameter<std::vector<double>>("gravity");
+        gravity << gravity_temp[0], gravity_temp[1], gravity_temp[2];
+        check_satu = node.declare_parameter<bool>("check_satu");
+        fix_gravity_direction = node.declare_parameter<bool>("fix_gravity_direction");
+        satu_acc = node.declare_parameter<double>("satu_acc") * 0.99;
+        satu_gyro = node.declare_parameter<double>("satu_gyro") * 0.99;
+        acc_norm = node.declare_parameter<double>("acc_norm");
 
         // 地图
-        map_resolution = node["map_resolution"].as<float>();
-        init_map_size = node["init_map_size"].as<size_t>();
+        map_resolution = node.declare_parameter<float>("map_resolution");
+        init_map_size = static_cast<size_t>(node.declare_parameter<long>("init_map_size"));
 
         // 雷达与IMU相对位姿
-        extrinsic_est_en = node["extrinsic_est_en"].as<bool>();
-        extrinsic_T << node["extrinsic_T"][0].as<double>(),
-                node["extrinsic_T"][1].as<double>(),
-                node["extrinsic_T"][2].as<double>();
-        extrinsic_R << node["extrinsic_R"][0].as<double>(),
-                node["extrinsic_R"][1].as<double>(),
-                node["extrinsic_R"][2].as<double>(),
-                node["extrinsic_R"][3].as<double>(),
-                node["extrinsic_R"][4].as<double>(),
-                node["extrinsic_R"][5].as<double>(),
-                node["extrinsic_R"][6].as<double>(),
-                node["extrinsic_R"][7].as<double>(),
-                node["extrinsic_R"][8].as<double>();
+        extrinsic_est_en = node.declare_parameter<bool>("extrinsic_est_en");
+        std::vector<double> extrinsic_T_temp = node.declare_parameter<std::vector<double>>("extrinsic_T");
+        extrinsic_T << extrinsic_T_temp[0], extrinsic_T_temp[1], extrinsic_T_temp[2];
+        std::vector<double> extrinsic_R_temp = node.declare_parameter<std::vector<double>>("extrinsic_R");
+        extrinsic_R << extrinsic_R_temp[0], extrinsic_R_temp[1], extrinsic_R_temp[2],
+                extrinsic_R_temp[3], extrinsic_R_temp[4], extrinsic_R_temp[5],
+                extrinsic_R_temp[6], extrinsic_R_temp[7], extrinsic_R_temp[8];
 
         // 滤波器参数
-        laser_point_cov = node["laser_point_cov"].as<double>();
-        imu_meas_acc_cov = node["imu_meas_acc_cov"].as<double>();
-        imu_meas_omg_cov = node["imu_meas_omg_cov"].as<double>();
-        velocity_cov = node["velocity_cov"].as<double>();
-        acceleration_cov = node["acceleration_cov"].as<double>();
-        omg_cov = node["omg_cov"].as<double>();
-        ba_cov = node["ba_cov"].as<double>();
-        bg_cov = node["bg_cov"].as<double>();
-        plane_thr = node["plane_thr"].as<double>();
-        match_s = node["match_s"].as<double>();
+        laser_point_cov = node.declare_parameter<double>("laser_point_cov");
+        imu_meas_acc_cov = node.declare_parameter<double>("imu_meas_acc_cov");
+        imu_meas_omg_cov = node.declare_parameter<double>("imu_meas_omg_cov");
+        velocity_cov = node.declare_parameter<double>("velocity_cov");
+        acceleration_cov = node.declare_parameter<double>("acceleration_cov");
+        omg_cov = node.declare_parameter<double>("omg_cov");
+        ba_cov = node.declare_parameter<double>("ba_cov");
+        bg_cov = node.declare_parameter<double>("bg_cov");
+        plane_thr = node.declare_parameter<double>("plane_thr");
+        match_s = node.declare_parameter<double>("match_s");
 
         // 数据发布
-        publish_odometry_without_downsample = node["publish_odometry_without_downsample"].as<bool>();
+        publish_odometry_without_downsample = node.declare_parameter<bool>("publish_odometry_without_downsample");
     }
 
 }// namespace small_point_lio

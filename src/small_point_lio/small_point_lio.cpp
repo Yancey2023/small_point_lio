@@ -8,7 +8,7 @@
 
 namespace small_point_lio {
 
-    SmallPointLio::SmallPointLio(const YAML::Node &node) {
+    SmallPointLio::SmallPointLio(rclcpp::Node &node) {
         // init param
         parameters.read_parameters(node);
         preprocess.parameters = &parameters;

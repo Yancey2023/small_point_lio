@@ -11,17 +11,13 @@ def generate_launch_description():
         name="small_point_lio",
         output="screen",
         parameters=[
-            {
-                "config_file": [
-                    PathJoinSubstitution(
-                        [
-                            FindPackageShare("small_point_lio"),
-                            "config",
-                            "mid360.yaml",
-                        ]
-                    )
-                ],
-            }
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("small_point_lio"),
+                    "config",
+                    "mid360.yaml",
+                ]
+            )
         ],
     )
 

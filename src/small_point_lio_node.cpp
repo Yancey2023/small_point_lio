@@ -5,8 +5,6 @@
  */
 
 #include "small_point_lio_node.hpp"
-#include "common/common.h"
-#include "sensor_msgs/msg/point_cloud2.hpp"
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -16,27 +14,21 @@ namespace small_point_lio {
 
     SmallPointLioNode::SmallPointLioNode(const rclcpp::NodeOptions &options)
         : Node("small_point_lio", options) {
-        spdlog::default_logger()->sinks().push_back(std::make_shared<ROS2Sink_mt>(this));
-        std::string config_file = declare_parameter<std::string>("config_file", "");
-        if (config_file.empty()) {
-            SPDLOG_ERROR("error config file");
-            spdlog::shutdown();
-            return;
-        }
-        YAML::Node config = YAML::LoadFile(config_file)["small_point_lio"];
-        bool save_pcd = config["save_pcd"].as<bool>();
-        small_point_lio = std::make_unique<small_point_lio::SmallPointLio>(config);
+        std::string lidar_topic = declare_parameter<std::string>("lidar_topic");
+        std::string imu_topic = declare_parameter<std::string>("imu_topic");
+        bool save_pcd = declare_parameter<bool>("save_pcd");
+        small_point_lio = std::make_unique<small_point_lio::SmallPointLio>(*this);
         odometry_publisher = create_publisher<nav_msgs::msg::Odometry>("/Odometry", 1000);
         pointcloud_publisher = create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 1000);
         tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
         tf_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
-        map_save_trigger = this->create_service<std_srvs::srv::Trigger>(
+        map_save_trigger = create_service<std_srvs::srv::Trigger>(
                 "map_save",
                 [this, save_pcd](const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res) {
                     if (!save_pcd) {
-                        SPDLOG_ERROR("pcd save is disabled");
+                        RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "pcd save is disabled");
                         return;
                     }
                     voxelgrid_sampling::VoxelgridSampling downsampler;
@@ -53,7 +45,7 @@ namespace small_point_lio {
                     }
                     pcl::PCDWriter writer;
                     writer.writeBinary(ROOT_DIR + "/pcd/scan.pcd", pcl_pointcloud);
-                    SPDLOG_INFO("save pcd success");
+                    RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "save pcd success");
                 });
         small_point_lio->set_odometry_callback([this](const common::Odometry &odometry) {
             last_odometry = odometry;
@@ -85,7 +77,7 @@ namespace small_point_lio {
             try {
                 base_link_to_livox_frame_transform = tf_buffer->lookupTransform("livox_frame", "base_link", odometry_msg.header.stamp);
             } catch (tf2::TransformException &ex) {
-                RCLCPP_ERROR(get_logger(), "Failed to lookup transform from base_link to livox_frame: %s", ex.what());
+                RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to livox_frame: %s", ex.what());
                 return;
             }
             tf2::Transform tf_lidar_odom_to_livox_frame;
@@ -121,8 +113,8 @@ namespace small_point_lio {
                 pointcloud_to_save.insert(pointcloud_to_save.end(), pointcloud.begin(), pointcloud.end());
             }
         });
-        pointcloud_subsciber = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(
-                config["lidar_topic"].as<std::string>(),
+        pointcloud_subsciber = create_subscription<livox_ros_driver2::msg::CustomMsg>(
+                lidar_topic,
                 rclcpp::SensorDataQoS(),
                 [this](const livox_ros_driver2::msg::CustomMsg &msg) {
                     pointcloud.clear();
@@ -139,8 +131,8 @@ namespace small_point_lio {
                     small_point_lio->on_point_cloud_callback(pointcloud);
                     small_point_lio->handle_once();
                 });
-        imu_subsciber = this->create_subscription<sensor_msgs::msg::Imu>(
-                config["imu_topic"].as<std::string>(),
+        imu_subsciber = create_subscription<sensor_msgs::msg::Imu>(
+                imu_topic,
                 rclcpp::SensorDataQoS(),
                 [this](const sensor_msgs::msg::Imu &msg) {
                     common::ImuMsg imu_msg;
@@ -150,10 +142,6 @@ namespace small_point_lio {
                     small_point_lio->on_imu_callback(imu_msg);
                     small_point_lio->handle_once();
                 });
-    }
-
-    SmallPointLioNode::~SmallPointLioNode() {
-        spdlog::default_logger()->sinks().clear();
     }
 
 }// namespace small_point_lio

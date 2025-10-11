@@ -29,7 +29,7 @@ namespace small_point_lio {
     public:
         Eigen::Matrix<double, 30, 30> Q;
 
-        explicit SmallPointLio(const YAML::Node &node);
+        explicit SmallPointLio(rclcpp::Node &node);
 
         void reset();
 
