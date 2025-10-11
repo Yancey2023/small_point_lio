@@ -69,7 +69,7 @@ small_point_lio:
 
 ## Save map
 
-**Step 1**: set `pcd_save_enable` to `true` in config file.
+**Step 1**: set `save_pcd` to `true` in config file.
 
 **Step 2**: run small point lio until the map is finished.
 
@@ -79,7 +79,7 @@ small_point_lio:
 ros2 service call /map_save std_srvs/srv/Trigger
 ```
 
-> Note: Please make sure you have enough memery to save map. Don't forget to set `pcd_save_enable` to `false` after saving.
+> Note: Please make sure you have enough memery to save map. Don't forget to set `save_pcd` to `false` after saving.
 
 ## Third-party
 
