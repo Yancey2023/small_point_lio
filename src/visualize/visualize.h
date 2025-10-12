@@ -1,7 +1,7 @@
 #pragma once
 
-#include <small_point_lio/pch.h>
 #include <pangolin/pangolin.h>
+#include <small_point_lio/pch.h>
 
 namespace visualize {
 
