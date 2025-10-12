@@ -24,7 +24,6 @@ namespace small_point_lio {
         std::function<void(const std::vector<Eigen::Vector3f> &pointcloud)> pointcloud_callback;
         std::function<void(const common::Odometry &odometry)> odometry_callback;
         bool is_init = false;
-        bool is_time_init = false;
 
     public:
         Eigen::Matrix<double, 30, 30> Q;
