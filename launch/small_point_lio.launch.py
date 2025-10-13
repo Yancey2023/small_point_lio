@@ -5,19 +5,23 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    small_point_lio_node = Node(
+    rm_serial_driver_node = Node(
         package="small_point_lio",
         executable="small_point_lio_node",
         name="small_point_lio",
         output="screen",
         parameters=[
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("small_point_lio"),
-                    "config",
-                    "mid360.yaml",
-                ]
-            )
+            {
+                "config_file": [
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("small_point_lio"),
+                            "config",
+                            "unilidar_l2.yaml",
+                        ]
+                    )
+                ],
+            }
         ],
     )
 
@@ -40,8 +44,8 @@ def generate_launch_description():
             "--frame-id",
             "base_link",
             "--child-frame-id",
-            "livox_frame",
+            "unilidar_imu_initial",
         ],
     )
 
-    return LaunchDescription([small_point_lio_node, static_base_link_to_livox_frame])
+    return LaunchDescription([rm_serial_driver_node, static_base_link_to_livox_frame])

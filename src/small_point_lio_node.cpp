@@ -5,6 +5,8 @@
  */
 
 #include "small_point_lio_node.hpp"
+#include "common/common.h"
+#include "sensor_msgs/msg/point_cloud2.hpp"
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -14,26 +16,32 @@ namespace small_point_lio {
 
     SmallPointLioNode::SmallPointLioNode(const rclcpp::NodeOptions &options)
         : Node("small_point_lio", options) {
-        std::string lidar_topic = declare_parameter<std::string>("lidar_topic");
-        std::string imu_topic = declare_parameter<std::string>("imu_topic");
-        bool save_pcd = declare_parameter<bool>("save_pcd");
-        small_point_lio = std::make_unique<small_point_lio::SmallPointLio>(*this);
+        spdlog::default_logger()->sinks().push_back(std::make_shared<ROS2Sink_mt>(this));
+        std::string config_file = declare_parameter<std::string>("config_file", "");
+        if (config_file.empty()) {
+            SPDLOG_ERROR("error config file");
+            spdlog::shutdown();
+            return;
+        }
+        YAML::Node config = YAML::LoadFile(config_file)["small_point_lio"];
+        bool save_pcd = config["save_pcd"].as<bool>();
+        small_point_lio = std::make_unique<small_point_lio::SmallPointLio>(config);
         odometry_publisher = create_publisher<nav_msgs::msg::Odometry>("/Odometry", 1000);
         pointcloud_publisher = create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 1000);
         tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
         tf_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
-        map_save_trigger = create_service<std_srvs::srv::Trigger>(
+        map_save_trigger = this->create_service<std_srvs::srv::Trigger>(
                 "map_save",
                 [this, save_pcd](const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res) {
                     if (!save_pcd) {
-                        RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "pcd save is disabled");
+                        SPDLOG_ERROR("pcd save is disabled");
                         return;
                     }
                     voxelgrid_sampling::VoxelgridSampling downsampler;
                     std::vector<Eigen::Vector3f> downsampled;
-                    downsampler.voxelgrid_sampling_omp(pointcloud_to_save, downsampled, 0.02);
+                    downsampler.voxelgrid_sampling(pointcloud_to_save, downsampled, 0.02);
                     pcl::PointCloud<pcl::PointXYZI> pcl_pointcloud;
                     pcl_pointcloud.reserve(downsampled.size());
                     for (const auto &point: downsampled) {
@@ -45,7 +53,7 @@ namespace small_point_lio {
                     }
                     pcl::PCDWriter writer;
                     writer.writeBinary(ROOT_DIR + "/pcd/scan.pcd", pcl_pointcloud);
-                    RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "save pcd success");
+                    SPDLOG_INFO("save pcd success");
                 });
         small_point_lio->set_odometry_callback([this](const common::Odometry &odometry) {
             last_odometry = odometry;
@@ -75,9 +83,10 @@ namespace small_point_lio {
             transform_stamped.child_frame_id = "base_link";
             geometry_msgs::msg::TransformStamped base_link_to_livox_frame_transform;
             try {
-                base_link_to_livox_frame_transform = tf_buffer->lookupTransform("livox_frame", "base_link", odometry_msg.header.stamp);
+                base_link_to_livox_frame_transform =
+        tf_buffer->lookupTransform("unilidar_lidar", "base_link",odometry_msg.header.stamp);
             } catch (tf2::TransformException &ex) {
-                RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to livox_frame: %s", ex.what());
+                RCLCPP_ERROR(get_logger(), "Failed to lookup transform from base_link to unilidar_lidar: %s", ex.what());
                 return;
             }
             tf2::Transform tf_lidar_odom_to_livox_frame;
@@ -113,35 +122,90 @@ namespace small_point_lio {
                 pointcloud_to_save.insert(pointcloud_to_save.end(), pointcloud.begin(), pointcloud.end());
             }
         });
-        pointcloud_subsciber = create_subscription<livox_ros_driver2::msg::CustomMsg>(
-                lidar_topic,
-                rclcpp::SensorDataQoS(),
-                [this](const livox_ros_driver2::msg::CustomMsg &msg) {
-                    pointcloud.clear();
-                    pointcloud.reserve(msg.points.size());
-                    common::Point new_point;
-                    for (const auto &point: msg.points) {
-                        if ((point.tag & 0b010000) != 0b00000000 || (point.tag & 0b00001100) != 0b00000000 || (point.tag & 0b00000011) != 0b00000000) {
-                            continue;
-                        }
-                        new_point.position << point.x, point.y, point.z;
-                        new_point.timestamp = static_cast<double>(msg.timebase + point.offset_time) * 1e-9;
-                        pointcloud.push_back(new_point);
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+        pointcloud_subsciber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+            config["lidar_topic"].as<std::string>(),
+            rclcpp::SensorDataQoS(),
+            [this](const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+                // Step 1: ROS -> PCL
+                pcl::PointCloud<unilidar_ros::Point> pl_orig;
+                pcl::fromROSMsg(*msg, pl_orig);
+                if (pl_orig.empty()) return;
+
+                // ✅ 获取这一帧的 ROS 时间（全局时间戳）
+                double msg_time = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
+
+                float blind = 0.1f;          // 盲区距离
+                float time_unit_scale = 1.0f; // 雷达 time 字段单位是秒
+
+                // Step 2: 过滤 + 转换为 common::Point
+                std::vector<common::Point> pointcloud;
+                pointcloud.reserve(pl_orig.size());
+
+                int count_filtered = 0;
+                for (const auto &src : pl_orig.points) {
+                    // 距离过滤
+                    float dist2 = src.x * src.x + src.y * src.y + src.z * src.z;
+                    if (dist2 <= blind * blind) {
+                        count_filtered++;
+                        continue;
                     }
-                    small_point_lio->on_point_cloud_callback(pointcloud);
-                    small_point_lio->handle_once();
-                });
-        imu_subsciber = create_subscription<sensor_msgs::msg::Imu>(
-                imu_topic,
+
+                    common::Point p;
+                    p.position << src.x, src.y, src.z;
+
+                    // ✅ 关键修正：把相对时间偏移叠加到全局时间上
+                    p.timestamp = msg_time + src.time * time_unit_scale;
+
+                    pointcloud.push_back(p);
+                }
+
+                // 打印调试信息，确认时间是否合理
+                if (!pointcloud.empty()) {
+                    RCLCPP_INFO(
+                        this->get_logger(),
+                        "msg_time=%.6f, first_point=%.6f, last_point=%.6f, input=%zu, filtered=%d, output=%zu",
+                        msg_time,
+                        pointcloud.front().timestamp,
+                        pointcloud.back().timestamp,
+                        pl_orig.size(),
+                        count_filtered,
+                        pointcloud.size());
+                } else {
+                    RCLCPP_WARN(this->get_logger(), "All points filtered out!");
+                }
+
+                // Step 3: 送入 LIO 算法
+                small_point_lio->on_point_cloud_callback(pointcloud);
+                small_point_lio->handle_once();
+            });
+
+
+
+        imu_subsciber = this->create_subscription<sensor_msgs::msg::Imu>(
+                config["imu_topic"].as<std::string>(),
                 rclcpp::SensorDataQoS(),
                 [this](const sensor_msgs::msg::Imu &msg) {
                     common::ImuMsg imu_msg;
                     imu_msg.angular_velocity = Eigen::Vector3d(msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z);
                     imu_msg.linear_acceleration = Eigen::Vector3d(msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z);
                     imu_msg.timestamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9;
+                    double an = std::sqrt(
+  msg.linear_acceleration.x*msg.linear_acceleration.x +
+  msg.linear_acceleration.y*msg.linear_acceleration.y +
+  msg.linear_acceleration.z*msg.linear_acceleration.z
+);
+                    RCLCPP_INFO(this->get_logger(), "IMU acc norm: %.3f", an);
                     small_point_lio->on_imu_callback(imu_msg);
                     small_point_lio->handle_once();
                 });
+    }
+
+    SmallPointLioNode::~SmallPointLioNode() {
+        spdlog::default_logger()->sinks().clear();
     }
 
 }// namespace small_point_lio

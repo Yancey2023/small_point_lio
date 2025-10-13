@@ -7,6 +7,9 @@
 #include "preprocess.h"
 #include "parameters.h"
 
+#include <rclcpp/logger.hpp>
+#include <rclcpp/logging.hpp>
+
 namespace small_point_lio {
 
     void Preprocess::reset() {
@@ -51,6 +54,11 @@ namespace small_point_lio {
              [](const auto &x, const auto &y) {
                  return x.timestamp < y.timestamp;
              });
+        RCLCPP_INFO(
+        rclcpp::get_logger("Preprocess"),
+        "Input: %zu, after time/distance filters: %zu, after downsample: %zu",
+        pointcloud.size(), filtered_points.size(), processed_pointcloud.size()
+    );
         if (!dense_points.empty()) {
             last_timestamp_dense_point = dense_points.back().timestamp;
             dense_point_deque.insert(dense_point_deque.end(), dense_points.begin(), dense_points.end());
@@ -59,11 +67,12 @@ namespace small_point_lio {
             last_timestamp_lidar = processed_pointcloud.back().timestamp;
             point_deque.insert(point_deque.end(), processed_pointcloud.begin(), processed_pointcloud.end());
         }
+
     }
 
     void Preprocess::on_imu_callback(const common::ImuMsg &imu_msg) {
         if (imu_msg.timestamp < last_timestamp_imu) {
-            RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "imu loop back");
+            SPDLOG_ERROR("imu loop back");
             return;
         }
         imu_deque.emplace_back(imu_msg);

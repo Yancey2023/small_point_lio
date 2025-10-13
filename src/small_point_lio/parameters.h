@@ -45,7 +45,7 @@ namespace small_point_lio {
 
         bool publish_odometry_without_downsample = false;
 
-        void read_parameters(rclcpp::Node &node);
+        void read_parameters(const YAML::Node &node);
     };
 
 }// namespace small_point_lio

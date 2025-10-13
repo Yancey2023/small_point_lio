@@ -1,0 +1,47 @@
+small_point_lio:
+    lidar_topic: /unilidar/cloud                  # 点云话题名
+    imu_topic: /unilidar/imu                    # IMU话题名
+    save_pcd: false                            # 是否保存点云
+
+    # 点云过滤
+    point_filter_num: 1                        # 多少个点取一个点
+    min_distance: 0.1                         # 点云半径最小值，小于该数据点会被过滤
+    max_distance: 1000                         # 点云半径最大值，大于该数据点会被过滤
+    space_downsample: true                     # 是否启用点云降采样
+    space_downsample_leaf_size: 0.2            # 点云降采样时使用的栅格大小
+
+    # IMU处理
+    gravity: [0.0, 0.0, -9.810]                # 重力
+    fix_gravity_direction: true                # 是否收集前200个IMU数据修正重力方向，重力的大小依旧从gravity参数获得
+    check_satu: true                           # 是否开启IMU的数据饱和检查
+    satu_acc: 3.0                              # IMU的加速度饱和阈值
+    satu_gyro: 35.0                            # IMU的角速度饱和阈值
+    acc_norm:  9.81                              # IMU的加速度单位是多少倍的重力
+
+    # 地图
+    map_resolution: 0.2                        # 地图分辨率
+    init_map_size: 10                          # 接收到多少个点才初始化地图
+
+    # 雷达与IMU相对位姿
+    extrinsic_est_en: true                   # 雷达与IMU的相对位姿是否通过预测得到
+    extrinsic_T: [ 0.007698, 0.014655, -0.00667] # ulhk # [-0.5, 1.4, 1.5] # utbm
+    extrinsic_R: [1.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0,
+                  0.0, 0.0, 1.0]
+
+    # 滤波器参数
+    # R
+    laser_point_cov: 0.01                      # 激光点的协方差
+    imu_meas_acc_cov: 0.1                     # IMU测量的加速度协方差
+    imu_meas_omg_cov: 0.1                     # IMU测量的角速度协方差
+    # Q
+    velocity_cov: 20.0                         # 速度的协方差
+    acceleration_cov: 500.0                    # 加速度的协方差
+    omg_cov: 1000.0                            # 角速度的协方差
+    ba_cov: 0.001                             # 加速度偏置的协方差
+    bg_cov: 0.001                             # 角速度偏置的协方差
+    plane_thr: 0.1                             # 平面匹配阈值，越小表示越严格
+    match_s: 81.0                              # 当前点是否在平面上的阈值，越小表示越严格
+
+    # 数据发布
+    publish_odometry_without_downsample: false # 是否发布高频的里程计，需要注意的是这并不能提高里程计的实时性，反而会导致性能下降，建议通过增加点云发布频率来获得高频和高实时性的里程计

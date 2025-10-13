@@ -8,7 +8,7 @@
 
 #include "common/common.h"
 #include "small_point_lio/small_point_lio.h"
-#include <livox_ros_driver2/msg/custom_msg.hpp>
+//#include <livox_ros_driver2/msg/custom_msg.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -18,19 +18,84 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <small_point_lio/pch.h>
+#include <spdlog/sinks/base_sink.h>
 #include <std_srvs/srv/trigger.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.hpp>
 #include <tf2_ros/transform_listener.h>
+namespace unilidar_ros {
+    struct EIGEN_ALIGN16 Point {
+        PCL_ADD_POINT4D
+        PCL_ADD_INTENSITY
+        std::uint16_t ring;
+        float time;
 
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    };
+}  // namespace unilidar_ros
+POINT_CLOUD_REGISTER_POINT_STRUCT(unilidar_ros::Point,
+                                    (float, x, x)
+                                    (float, y, y)
+                                    (float, z, z)
+                                    (float, intensity, intensity)
+                                    (std::uint16_t, ring, ring)
+                                    (float, time, time)
+                                    )
+typedef pcl::PointXYZINormal PointType;
+typedef pcl::PointCloud<PointType> PointCloudXYZI;
 namespace small_point_lio {
+
+    template<typename Mutex>
+    class ROS2Sink : public spdlog::sinks::base_sink<Mutex> {
+    private:
+        rclcpp::Node *node;
+
+    public:
+        explicit ROS2Sink(rclcpp::Node *node)
+            : node(node) {}
+
+    protected:
+        void sink_it_(const spdlog::details::log_msg &msg) override {
+            spdlog::memory_buf_t formatted;
+            spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
+            std::string log_str = fmt::to_string(formatted);
+            if (!log_str.empty() && log_str.back() == '\n') {
+                log_str.pop_back();
+            }
+            rclcpp::Logger logger = node->get_logger();
+            switch (msg.level) {
+                case spdlog::level::trace:
+                case spdlog::level::debug:
+                    RCLCPP_DEBUG(logger, "%s", log_str.c_str());
+                    break;
+                case spdlog::level::info:
+                    RCLCPP_INFO(logger, "%s", log_str.c_str());
+                    break;
+                case spdlog::level::warn:
+                    RCLCPP_WARN(logger, "%s", log_str.c_str());
+                    break;
+                case spdlog::level::err:
+                case spdlog::level::critical:
+                    RCLCPP_ERROR(logger, "%s", log_str.c_str());
+                    break;
+                default:
+                    RCLCPP_INFO(logger, "%s", log_str.c_str());
+                    break;
+            }
+        }
+
+        void flush_() override {
+        }
+    };
+
+    using ROS2Sink_mt = ROS2Sink<std::mutex>;
 
     class SmallPointLioNode : public rclcpp::Node {
     private:
         std::unique_ptr<small_point_lio::SmallPointLio> small_point_lio;
         std::vector<common::Point> pointcloud;
         std::vector<Eigen::Vector3f> pointcloud_to_save;
-        std::shared_ptr<rclcpp::Subscription<livox_ros_driver2::msg::CustomMsg>> pointcloud_subsciber;
+        std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>> pointcloud_subsciber;
         std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Imu>> imu_subsciber;
         std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odometry_publisher;
         std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> pointcloud_publisher;
@@ -43,8 +108,10 @@ namespace small_point_lio {
     public:
         explicit SmallPointLioNode(const rclcpp::NodeOptions &options);
 
+        ~SmallPointLioNode() override;
+
     private:
-        void pointcloud_callback(const livox_ros_driver2::msg::CustomMsg &msg);
+        void pointcloud_callback(const sensor_msgs::msg::PointCloud2 &msg);
 
         void imu_callback(const sensor_msgs::msg::Imu &msg);
     };
