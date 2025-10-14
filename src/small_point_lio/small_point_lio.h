@@ -26,7 +26,7 @@ namespace small_point_lio {
         bool is_init = false;
 
     public:
-        Eigen::Matrix<double, 30, 30> Q;
+        Eigen::Matrix<state::value_type, 30, 30> Q;
 
         explicit SmallPointLio(const YAML::Node &node);
 

@@ -15,16 +15,20 @@ namespace small_point_lio {
 
     class Estimator {
     public:
+        // for common
         Parameters *parameters = nullptr;
+        esekf kf;
+        std::shared_ptr<SmallIVox> ivox;
+        // for h_point
+        Eigen::Matrix<state::value_type, 3, 1> Lidar_T_wrt_IMU;
+        Eigen::Matrix<state::value_type, 3, 3> Lidar_R_wrt_IMU;
         Eigen::Vector3f point_lidar_frame;
         Eigen::Vector3f point_odom_frame;
         std::vector<Eigen::Vector3f> nearest_points;
-        std::shared_ptr<SmallIVox> ivox = nullptr;
-        esekf kf;
-        Eigen::Vector3d angular_velocity, linear_acceleration;
-        Eigen::Vector3d Lidar_T_wrt_IMU;
-        Eigen::Matrix3d Lidar_R_wrt_IMU;
-        double G_m_s2 = 9.81;
+        // for h_imu
+        Eigen::Matrix<state::value_type, 3, 1> angular_velocity;
+        Eigen::Matrix<state::value_type, 3, 1> linear_acceleration;
+        double G_m_s2;
 
         Estimator();
 
