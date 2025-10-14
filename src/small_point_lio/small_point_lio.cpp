@@ -13,11 +13,11 @@ namespace small_point_lio {
         parameters.read_parameters(node);
         preprocess.parameters = &parameters;
         estimator.parameters = &parameters;
-        estimator.Lidar_T_wrt_IMU = parameters.extrinsic_T;
-        estimator.Lidar_R_wrt_IMU = parameters.extrinsic_R;
+        estimator.Lidar_T_wrt_IMU = parameters.extrinsic_T.cast<state::value_type>();
+        estimator.Lidar_R_wrt_IMU = parameters.extrinsic_R.cast<state::value_type>();
         if (parameters.extrinsic_est_en) {
-            estimator.kf.x.offset_T_L_I = parameters.extrinsic_T;
-            estimator.kf.x.offset_R_L_I = parameters.extrinsic_R;
+            estimator.kf.x.offset_T_L_I = parameters.extrinsic_T.cast<state::value_type>();
+            estimator.kf.x.offset_R_L_I = parameters.extrinsic_R.cast<state::value_type>();
         }
         Q = estimator.process_noise_cov();
         estimator.G_m_s2 = parameters.gravity.norm();
@@ -52,9 +52,9 @@ namespace small_point_lio {
                 }
                 // fix gravity direction
                 if (parameters.fix_gravity_direction) {
-                    estimator.kf.x.gravity = Eigen::Vector3d::Zero();
+                    estimator.kf.x.gravity = Eigen::Matrix<state::value_type, 3, 1>::Zero();
                     for (const auto &imu_msg: preprocess.imu_deque) {
-                        estimator.kf.x.gravity += imu_msg.linear_acceleration;
+                        estimator.kf.x.gravity += imu_msg.linear_acceleration.cast<state::value_type>();
                     }
                     double scale = -parameters.gravity.norm() / estimator.kf.x.gravity.norm();
                     estimator.kf.x.gravity *= scale;
@@ -92,11 +92,11 @@ namespace small_point_lio {
             const common::ImuMsg &imu_msg = preprocess.imu_deque.front();
             if (dense_point_lidar_frame.timestamp < point_lidar_frame.timestamp && dense_point_lidar_frame.timestamp < imu_msg.timestamp) {
                 // collect odom frame pointcloud
-                Eigen::Vector3d dense_point_imu_frame;
+                Eigen::Matrix<state::value_type, 3, 1> dense_point_imu_frame;
                 if (parameters.extrinsic_est_en) {
-                    dense_point_imu_frame = estimator.kf.x.offset_R_L_I * dense_point_lidar_frame.position.cast<double>() + estimator.kf.x.offset_T_L_I;
+                    dense_point_imu_frame = estimator.kf.x.offset_R_L_I * dense_point_lidar_frame.position.cast<state::value_type>() + estimator.kf.x.offset_T_L_I;
                 } else {
-                    dense_point_imu_frame = estimator.Lidar_R_wrt_IMU * dense_point_lidar_frame.position.cast<double>() + estimator.Lidar_T_wrt_IMU;
+                    dense_point_imu_frame = estimator.Lidar_R_wrt_IMU * dense_point_lidar_frame.position.cast<state::value_type>() + estimator.Lidar_T_wrt_IMU;
                 }
                 pointcloud_odom_frame.emplace_back((estimator.kf.x.rotation * dense_point_imu_frame + estimator.kf.x.position).cast<float>());
 
@@ -106,7 +106,7 @@ namespace small_point_lio {
                 time_current = point_lidar_frame.timestamp;
 
                 // predict
-                double dt = time_current - time_predict_last;
+                auto dt = static_cast<state::value_type>(time_current - time_predict_last);
                 if (dt > 0) {
                     // if dt equal 0, don't predict
                     estimator.kf.predict_state(dt);
@@ -131,7 +131,7 @@ namespace small_point_lio {
                 time_current = imu_msg.timestamp;
 
                 // predict
-                double dt = time_current - time_predict_last;
+                auto dt = static_cast<state::value_type>(time_current - time_predict_last);
                 if (dt > 0) {
                     // if dt equal 0, don't predict
                     estimator.kf.predict_state(dt);
@@ -139,9 +139,9 @@ namespace small_point_lio {
                 }
 
                 // update
-                estimator.angular_velocity = imu_msg.angular_velocity;
-                estimator.linear_acceleration = imu_msg.linear_acceleration;
-                double dt_cov = time_current - time_update_last;
+                estimator.angular_velocity = imu_msg.angular_velocity.cast<state::value_type>();
+                estimator.linear_acceleration = imu_msg.linear_acceleration.cast<state::value_type>();
+                auto dt_cov = static_cast<state::value_type>(time_current - time_update_last);
                 time_update_last = time_current;
                 estimator.kf.predict_prop_cov(dt_cov, Q);
                 estimator.kf.update_iterated_imu();
@@ -178,10 +178,10 @@ namespace small_point_lio {
         if (odometry_callback) {
             common::Odometry odometry;
             odometry.timestamp = timestamp;
-            odometry.position = estimator.kf.x.position;
-            odometry.velocity = estimator.kf.x.velocity;
-            odometry.orientation = estimator.kf.x.rotation;
-            odometry.angular_velocity = estimator.kf.x.omg;
+            odometry.position = estimator.kf.x.position.cast<double>();
+            odometry.velocity = estimator.kf.x.velocity.cast<double>();
+            odometry.orientation = estimator.kf.x.rotation.cast<double>();
+            odometry.angular_velocity = estimator.kf.x.omg.cast<double>();
             odometry_callback(odometry);
         }
     }

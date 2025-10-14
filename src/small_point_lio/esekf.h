@@ -127,11 +127,9 @@ namespace small_point_lio {
             if (!measurement_result.valid) {
                 return false;
             }
-            Eigen::Matrix<state::value_type, state::DIM, 1> PHT;
-            Eigen::Matrix<state::value_type, state::DIM, 1> K;
+            Eigen::Matrix<state::value_type, state::DIM, 1> PHT = P.template block<state::DIM, 12>(0, 0) * measurement_result.h_x.transpose();
+            Eigen::Matrix<state::value_type, state::DIM, 1> K = PHT / (measurement_result.h_x * PHT.topRows(12) + measurement_result.laser_point_cov);
             Eigen::Matrix<state::value_type, state::DIM, 1> dx;
-            PHT.noalias() = P.template block<state::DIM, 12>(0, 0) * measurement_result.h_x.transpose();
-            K.noalias() = PHT / (measurement_result.h_x * PHT.topRows(12) + measurement_result.laser_point_cov);
             dx.noalias() = K * measurement_result.z;
             x.plus(dx);
             P = P - K * measurement_result.h_x * P.template block<12, state::DIM>(0, 0);
@@ -142,8 +140,8 @@ namespace small_point_lio {
             imu_measurement_result measurement_result;
             h_imu(x, measurement_result);
             Eigen::Matrix<state::value_type, 6, 1> z = measurement_result.z;
-            Eigen::Matrix<state::value_type, 30, 6> PHT = Eigen::Matrix<state::value_type, 30, 6>::Zero();
-            Eigen::Matrix<state::value_type, 6, 30> HP = Eigen::Matrix<state::value_type, 6, 30>::Zero();
+            Eigen::Matrix<state::value_type, state::DIM, 6> PHT = Eigen::Matrix<state::value_type, state::DIM, 6>::Zero();
+            Eigen::Matrix<state::value_type, 6, state::DIM> HP = Eigen::Matrix<state::value_type, 6, state::DIM>::Zero();
             Eigen::Matrix<state::value_type, 6, 6> HPHT = Eigen::Matrix<state::value_type, 6, 6>::Zero();
             for (int i = 0; i < 6; i++) {
                 if (!measurement_result.satu_check[i]) {
@@ -157,7 +155,7 @@ namespace small_point_lio {
                 }
                 HPHT(i, i) += measurement_result.R(i);
             }
-            Eigen::Matrix<state::value_type, 30, 6> K = PHT * HPHT.inverse();
+            Eigen::Matrix<state::value_type, state::DIM, 6> K = PHT * HPHT.inverse();
             Eigen::Matrix<state::value_type, state::DIM, 1> dx = K * z;
             P -= K * HP;
             x.plus(dx);
