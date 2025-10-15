@@ -1,16 +1,16 @@
 small_point_lio:
     ros__parameters:
-        lidar_topic: /livox/lidar                  # 点云话题名
-        imu_topic: /livox/imu                      # IMU话题名
+        lidar_topic: /unilidar/cloud                 # 点云话题名
+        imu_topic: /unilidar/imu                      # IMU话题名
         save_pcd: false                            # 是否保存点云
-        lidar_type: livox
-        lidar_frame: livox_frame
+        lidar_type: l2
+        lidar_frame: unitree_lidar
         # 点云过滤
         point_filter_num: 1                        # 多少个点取一个点
-        min_distance: 0.5                          # 点云半径最小值，小于该值会被过滤
+        min_distance: 0.1                           # 点云半径最小值，小于该值会被过滤
         max_distance: 1000.0                       # 点云半径最大值，大于该值会被过滤
         space_downsample: true                     # 是否启用点云降采样
-        space_downsample_leaf_size: 0.5            # 点云降采样时使用的栅格大小
+        space_downsample_leaf_size: 0.2             # 点云降采样时使用的栅格大小
 
         # IMU处理
         gravity: [0.0, 0.0, -9.810]                # 重力
@@ -18,7 +18,7 @@ small_point_lio:
         check_satu: true                           # 是否开启IMU的数据饱和检查
         satu_acc: 3.0                              # IMU的加速度饱和阈值
         satu_gyro: 35.0                            # IMU的角速度饱和阈值
-        acc_norm: 1.0                              # IMU的加速度单位是多少倍的重力
+        acc_norm: 9.81                              # IMU的加速度单位是多少倍的重力
 
         # 地图
         map_resolution: 0.5                        # 地图分辨率
@@ -26,7 +26,7 @@ small_point_lio:
 
         # 雷达与IMU相对位姿
         extrinsic_est_en: false                    # 雷达与IMU的相对位姿是否通过预测得到
-        extrinsic_T: [-0.011, -0.02329, 0.04412]
+        extrinsic_T: [ 0.007698, 0.014655, -0.00667] # ulhk # [-0.5, 1.4, 1.5] # utbm
         extrinsic_R: [1.0, 0.0, 0.0,
                       0.0, 1.0, 0.0,
                       0.0, 0.0, 1.0]
@@ -40,8 +40,8 @@ small_point_lio:
         velocity_cov: 20.0                         # 速度的协方差
         acceleration_cov: 500.0                    # 加速度的协方差
         omg_cov: 1000.0                            # 角速度的协方差
-        ba_cov: 0.0001                             # 加速度偏置的协方差
-        bg_cov: 0.0001                             # 角速度偏置的协方差
+        ba_cov: 0.001                             # 加速度偏置的协方差
+        bg_cov: 0.001                             # 角速度偏置的协方差
         plane_thr: 0.1                             # 平面匹配阈值，越小表示越严格
         match_s: 81.0                              # 当前点是否在平面上的阈值，越小表示越严格
 

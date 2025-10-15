@@ -10,12 +10,16 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-namespace small_point_lio {
+#include <base_lidar.h>
+#include <l2_lidar.h>
 
+namespace small_point_lio {
     SmallPointLioNode::SmallPointLioNode(const rclcpp::NodeOptions &options)
         : Node("small_point_lio", options) {
         std::string lidar_topic = declare_parameter<std::string>("lidar_topic");
         std::string imu_topic = declare_parameter<std::string>("imu_topic");
+        std::string lidar_type = declare_parameter<std::string>("lidar_type");
+        std::string lidar_frame = declare_parameter<std::string>("lidar_frame");
         bool save_pcd = declare_parameter<bool>("save_pcd");
         small_point_lio = std::make_unique<small_point_lio::SmallPointLio>(*this);
         odometry_publisher = create_publisher<nav_msgs::msg::Odometry>("/Odometry", 1000);
@@ -47,7 +51,7 @@ namespace small_point_lio {
                     writer.writeBinary(ROOT_DIR + "/pcd/scan.pcd", pcl_pointcloud);
                     RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "save pcd success");
                 });
-        small_point_lio->set_odometry_callback([this](const common::Odometry &odometry) {
+        small_point_lio->set_odometry_callback([this, lidar_frame](const common::Odometry &odometry) {
             last_odometry = odometry;
 
             nav_msgs::msg::Odometry odometry_msg;
@@ -75,9 +79,9 @@ namespace small_point_lio {
             transform_stamped.child_frame_id = "base_link";
             geometry_msgs::msg::TransformStamped base_link_to_livox_frame_transform;
             try {
-                base_link_to_livox_frame_transform = tf_buffer->lookupTransform("livox_frame", "base_link", odometry_msg.header.stamp);
+                base_link_to_livox_frame_transform = tf_buffer->lookupTransform(lidar_frame ,"base_link", odometry_msg.header.stamp);
             } catch (tf2::TransformException &ex) {
-                RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to livox_frame: %s", ex.what());
+                RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to lidar_frame: %s", ex.what());
                 return;
             }
             tf2::Transform tf_lidar_odom_to_livox_frame;
@@ -113,24 +117,20 @@ namespace small_point_lio {
                 pointcloud_to_save.insert(pointcloud_to_save.end(), pointcloud.begin(), pointcloud.end());
             }
         });
-        pointcloud_subsciber = create_subscription<livox_ros_driver2::msg::CustomMsg>(
-                lidar_topic,
-                rclcpp::SensorDataQoS(),
-                [this](const livox_ros_driver2::msg::CustomMsg &msg) {
-                    pointcloud.clear();
-                    pointcloud.reserve(msg.points.size());
-                    common::Point new_point;
-                    for (const auto &point: msg.points) {
-                        if ((point.tag & 0b010000) != 0b00000000 || (point.tag & 0b00001100) != 0b00000000 || (point.tag & 0b00000011) != 0b00000000) {
-                            continue;
-                        }
-                        new_point.position << point.x, point.y, point.z;
-                        new_point.timestamp = static_cast<double>(msg.timebase + point.offset_time) * 1e-9;
-                        pointcloud.push_back(new_point);
-                    }
-                    small_point_lio->on_point_cloud_callback(pointcloud);
-                    small_point_lio->handle_once();
-                });
+            if (lidar_type == "livox") {
+            #ifdef HAVE_LIVOX_DRIVER
+                lidar_driver = std::make_unique<LivoxDriver>();
+            #else
+                RCLCPP_ERROR(get_logger(), "Livox driver requested but not available!");
+                lidar_driver = std::make_unique<L2Driver>();
+            #endif
+            } else if(lidar_type == "l2"){
+                lidar_driver = std::make_unique<L2Driver>();
+            }
+        lidar_driver->setup_subscription(this, lidar_topic, [this](const std::vector<common::Point>& cloud){
+            small_point_lio->on_point_cloud_callback(cloud);
+            small_point_lio->handle_once();
+        });
         imu_subsciber = create_subscription<sensor_msgs::msg::Imu>(
                 imu_topic,
                 rclcpp::SensorDataQoS(),
