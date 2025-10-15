@@ -4,7 +4,7 @@ project(small_point_lio)
 ## use c++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
+set(USE_SCOPED_HEADER_INSTALL_DIR TRUE)
 # enable color output
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
@@ -44,7 +44,13 @@ if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
-
+find_package(livox_ros_driver2 QUIET)
+if(livox_ros_driver2_FOUND)
+    message(STATUS "✅ Found livox_ros_driver2, enabling Livox lidar support.")
+    add_definitions(-DHAVE_LIVOX_DRIVER)
+else()
+    message(WARNING "⚠️ livox_ros_driver2 not found. Building without Livox lidar support.")
+endif()
 ###########
 ## Build ##
 ###########
@@ -58,6 +64,8 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE include/small_point_lio/pch.h)
 target_include_directories(${PROJECT_NAME} PUBLIC
     include
     ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lidar_drivers
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common
 )
 target_link_libraries(${PROJECT_NAME}
     Eigen3::Eigen
@@ -85,10 +93,9 @@ endif()
 #############
 ## Install ##
 #############
-
 ament_auto_package(
-    USE_SCOPED_HEADER_INSTALL_DIR
-    INSTALL_TO_SHARE
-    config
-    launch
+        USE_SCOPED_HEADER_INSTALL_DIR
+        INSTALL_TO_SHARE
+        config
+        launch
 )
