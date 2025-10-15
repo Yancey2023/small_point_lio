@@ -18,7 +18,6 @@
   <depend>tf2_ros</depend>
   <depend>pcl_ros</depend>
   <depend>pcl_conversions</depend>
-  <depend>livox_ros_driver2</depend>
   <depend>std_srvs</depend>
 
   <test_depend>ament_lint_auto</test_depend>

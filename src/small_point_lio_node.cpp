@@ -5,15 +5,15 @@
  */
 
 #include "small_point_lio_node.hpp"
+#include "lidar_adapter/livox_lidar.h"
+#include "lidar_adapter/unitree_lidar.h"
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include <base_lidar.h>
-#include <l2_lidar.h>
-
 namespace small_point_lio {
+
     SmallPointLioNode::SmallPointLioNode(const rclcpp::NodeOptions &options)
         : Node("small_point_lio", options) {
         std::string lidar_topic = declare_parameter<std::string>("lidar_topic");
@@ -77,19 +77,19 @@ namespace small_point_lio {
             transform_stamped.header.stamp = odometry_msg.header.stamp;
             transform_stamped.header.frame_id = "odom";
             transform_stamped.child_frame_id = "base_link";
-            geometry_msgs::msg::TransformStamped base_link_to_livox_frame_transform;
+            geometry_msgs::msg::TransformStamped base_link_to_lidar_frame_transform;
             try {
-                base_link_to_livox_frame_transform = tf_buffer->lookupTransform(lidar_frame ,"base_link", odometry_msg.header.stamp);
+                base_link_to_lidar_frame_transform = tf_buffer->lookupTransform(lidar_frame, "base_link", odometry_msg.header.stamp);
             } catch (tf2::TransformException &ex) {
-                RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to lidar_frame: %s", ex.what());
+                RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to %s: %s", lidar_frame.c_str(), ex.what());
                 return;
             }
-            tf2::Transform tf_lidar_odom_to_livox_frame;
-            tf_lidar_odom_to_livox_frame.setOrigin(tf2::Vector3(odometry.position.x(), odometry.position.y(), odometry.position.z()));
-            tf_lidar_odom_to_livox_frame.setRotation(tf2::Quaternion(odometry.orientation.x(), odometry.orientation.y(), odometry.orientation.z(), odometry.orientation.w()));
-            tf2::Transform tf_base_link_to_livox_frame;
-            tf2::fromMsg(base_link_to_livox_frame_transform.transform, tf_base_link_to_livox_frame);
-            tf2::Transform tf_odom_to_base_link = tf_base_link_to_livox_frame.inverse() * tf_lidar_odom_to_livox_frame * tf_base_link_to_livox_frame;
+            tf2::Transform tf_lidar_odom_to_lidar_frame;
+            tf_lidar_odom_to_lidar_frame.setOrigin(tf2::Vector3(odometry.position.x(), odometry.position.y(), odometry.position.z()));
+            tf_lidar_odom_to_lidar_frame.setRotation(tf2::Quaternion(odometry.orientation.x(), odometry.orientation.y(), odometry.orientation.z(), odometry.orientation.w()));
+            tf2::Transform tf_base_link_to_lidar_frame;
+            tf2::fromMsg(base_link_to_lidar_frame_transform.transform, tf_base_link_to_lidar_frame);
+            tf2::Transform tf_odom_to_base_link = tf_base_link_to_lidar_frame.inverse() * tf_lidar_odom_to_lidar_frame * tf_base_link_to_lidar_frame;
             transform_stamped.transform = tf2::toMsg(tf_odom_to_base_link);
 
             tf_broadcaster->sendTransform(transform_stamped);
@@ -117,18 +117,23 @@ namespace small_point_lio {
                 pointcloud_to_save.insert(pointcloud_to_save.end(), pointcloud.begin(), pointcloud.end());
             }
         });
-            if (lidar_type == "livox") {
-            #ifdef HAVE_LIVOX_DRIVER
-                lidar_driver = std::make_unique<LivoxDriver>();
-            #else
-                RCLCPP_ERROR(get_logger(), "Livox driver requested but not available!");
-                lidar_driver = std::make_unique<L2Driver>();
-            #endif
-            } else if(lidar_type == "l2"){
-                lidar_driver = std::make_unique<L2Driver>();
-            }
-        lidar_driver->setup_subscription(this, lidar_topic, [this](const std::vector<common::Point>& cloud){
-            small_point_lio->on_point_cloud_callback(cloud);
+        if (lidar_type == "livox") {
+#ifdef HAVE_LIVOX_DRIVER
+            lidar_adapter = std::make_unique<LivoxLidarAdapter>();
+#else
+            RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Livox driver requested but not available!");
+            rclcpp::shutdown();
+            return;
+#endif
+        } else if (lidar_type == "unilidar") {
+            lidar_adapter = std::make_unique<UnilidarAdapter>();
+        } else {
+            RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "unknwon lidar type");
+            rclcpp::shutdown();
+            return;
+        }
+        lidar_adapter->setup_subscription(this, lidar_topic, [this](const std::vector<common::Point> &pointcloud) {
+            small_point_lio->on_point_cloud_callback(pointcloud);
             small_point_lio->handle_once();
         });
         imu_subsciber = create_subscription<sensor_msgs::msg::Imu>(

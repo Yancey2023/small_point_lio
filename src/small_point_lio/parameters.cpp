@@ -10,16 +10,7 @@ namespace small_point_lio {
 
     void Parameters::read_parameters(rclcpp::Node &node) {
         // 点云过滤
-
-        RCLCPP_INFO(node.get_logger(), "Start reading parameters...");
-
-        try {
-            point_filter_num = static_cast<int>(node.declare_parameter<long>("point_filter_num"));
-            RCLCPP_INFO(node.get_logger(), "point_filter_num ok: %d", point_filter_num);
-        } catch (const std::exception &e) {
-            RCLCPP_ERROR(node.get_logger(), "Parameter error: %s", e.what());
-            throw;
-        }
+        point_filter_num = static_cast<int>(node.declare_parameter<long>("point_filter_num"));
         auto min_distance = node.declare_parameter<float>("min_distance");
         auto max_distance = node.declare_parameter<float>("max_distance");
         min_distance_squared = min_distance * min_distance;

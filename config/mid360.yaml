@@ -2,9 +2,10 @@ small_point_lio:
     ros__parameters:
         lidar_topic: /livox/lidar                  # 点云话题名
         imu_topic: /livox/imu                      # IMU话题名
+        lidar_type: livox                          # 雷达类型
+        lidar_frame: livox_frame                   # 雷达坐标系
         save_pcd: false                            # 是否保存点云
-        lidar_type: livox
-        lidar_frame: livox_frame
+
         # 点云过滤
         point_filter_num: 1                        # 多少个点取一个点
         min_distance: 0.5                          # 点云半径最小值，小于该值会被过滤
@@ -18,7 +19,7 @@ small_point_lio:
         check_satu: true                           # 是否开启IMU的数据饱和检查
         satu_acc: 3.0                              # IMU的加速度饱和阈值
         satu_gyro: 35.0                            # IMU的角速度饱和阈值
-        acc_norm: 1.0                              # IMU的加速度单位是多少倍的重力
+        acc_norm: 1.0                              # IMU的加速度模长
 
         # 地图
         map_resolution: 0.5                        # 地图分辨率

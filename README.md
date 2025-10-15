@@ -23,6 +23,8 @@ small_point_lio:
     ros__parameters:
         lidar_topic: /livox/lidar # LiDAR topic name
         imu_topic: /livox/imu # IMU topic name
+        lidar_type: livox # Lidar type
+        lidar_frame: livox_frame # Lidar frame
         save_pcd: false # Whether to save point cloud
 
         # Point Cloud Filtering
@@ -38,7 +40,7 @@ small_point_lio:
         check_satu: true # Whether to enable IMU data saturation check
         satu_acc: 3.0 # IMU acceleration saturation threshold
         satu_gyro: 35.0 # IMU angular velocity saturation threshold
-        acc_norm: 1.0 # IMU acceleration unit (multiple of gravity)
+        acc_norm: 1.0 # IMU acceleration norm
 
         # Map
         map_resolution: 0.5 # Map resolution

@@ -6,12 +6,9 @@
 
 #pragma once
 
-#include "base_lidar.h"
 #include "common/common.h"
+#include "lidar_adapter/base_lidar.h"
 #include "small_point_lio/small_point_lio.h"
-#ifdef USE_LIVOX_LIDAR
-#include <livox_ros_driver2/msg/custom_msg.hpp>
-#endif
 #include <nav_msgs/msg/odometry.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -25,24 +22,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.hpp>
 #include <tf2_ros/transform_listener.h>
-namespace unilidar_ros {
-    struct EIGEN_ALIGN16 Point {
-        PCL_ADD_POINT4D
-        PCL_ADD_INTENSITY
-        std::uint16_t ring;
-        float time;
 
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    };
-}  // namespace unilidar_ros
-POINT_CLOUD_REGISTER_POINT_STRUCT(unilidar_ros::Point,
-                                    (float, x, x)
-                                    (float, y, y)
-                                    (float, z, z)
-                                    (float, intensity, intensity)
-                                    (std::uint16_t, ring, ring)
-                                    (float, time, time)
-                                    )
 namespace small_point_lio {
 
     class SmallPointLioNode : public rclcpp::Node {
@@ -50,6 +30,7 @@ namespace small_point_lio {
         std::unique_ptr<small_point_lio::SmallPointLio> small_point_lio;
         std::vector<common::Point> pointcloud;
         std::vector<Eigen::Vector3f> pointcloud_to_save;
+        std::unique_ptr<LidarAdapterBase> lidar_adapter;
         std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Imu>> imu_subsciber;
         std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odometry_publisher;
         std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> pointcloud_publisher;
@@ -61,10 +42,6 @@ namespace small_point_lio {
 
     public:
         explicit SmallPointLioNode(const rclcpp::NodeOptions &options);
-
-    private:
-        std::unique_ptr<LidarDriverBase> lidar_driver;
-        void imu_callback(const sensor_msgs::msg::Imu &msg);
     };
 
 }// namespace small_point_lio
