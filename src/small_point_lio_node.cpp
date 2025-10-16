@@ -59,19 +59,6 @@ namespace small_point_lio {
             odometry_msg.header.stamp.nanosec = static_cast<uint32_t>((odometry.timestamp - odometry_msg.header.stamp.sec) * 1e9);
             odometry_msg.header.frame_id = "odom";
             odometry_msg.child_frame_id = "base_link";
-            odometry_msg.pose.pose.position.x = odometry.position.x();
-            odometry_msg.pose.pose.position.y = odometry.position.y();
-            odometry_msg.pose.pose.position.z = odometry.position.z();
-            odometry_msg.pose.pose.orientation.x = odometry.orientation.x();
-            odometry_msg.pose.pose.orientation.y = odometry.orientation.y();
-            odometry_msg.pose.pose.orientation.z = odometry.orientation.z();
-            odometry_msg.pose.pose.orientation.w = odometry.orientation.w();
-            odometry_msg.twist.twist.linear.x = odometry.velocity.x();
-            odometry_msg.twist.twist.linear.y = odometry.velocity.y();
-            odometry_msg.twist.twist.linear.z = odometry.velocity.z();
-            odometry_msg.twist.twist.angular.x = odometry.angular_velocity.x();
-            odometry_msg.twist.twist.angular.y = odometry.angular_velocity.y();
-            odometry_msg.twist.twist.angular.z = odometry.angular_velocity.z();
 
             geometry_msgs::msg::TransformStamped transform_stamped;
             transform_stamped.header.stamp = odometry_msg.header.stamp;
@@ -91,6 +78,22 @@ namespace small_point_lio {
             tf2::fromMsg(base_link_to_lidar_frame_transform.transform, tf_base_link_to_lidar_frame);
             tf2::Transform tf_odom_to_base_link = tf_base_link_to_lidar_frame.inverse() * tf_lidar_odom_to_lidar_frame * tf_base_link_to_lidar_frame;
             transform_stamped.transform = tf2::toMsg(tf_odom_to_base_link);
+
+            odometry_msg.pose.pose.position.x = transform_stamped.transform.translation.x;
+            odometry_msg.pose.pose.position.y = transform_stamped.transform.translation.y;
+            odometry_msg.pose.pose.position.z = transform_stamped.transform.translation.z;
+            odometry_msg.pose.pose.orientation.x = transform_stamped.transform.rotation.x;
+            odometry_msg.pose.pose.orientation.y = transform_stamped.transform.rotation.y;
+            odometry_msg.pose.pose.orientation.z = transform_stamped.transform.rotation.z;
+            odometry_msg.pose.pose.orientation.w = transform_stamped.transform.rotation.w;
+
+            // TODO it is lidar_odom->lidar_frame, we need to transform it to odom->base_link
+            // odometry_msg.twist.twist.linear.x = odometry.velocity.x();
+            // odometry_msg.twist.twist.linear.y = odometry.velocity.y();
+            // odometry_msg.twist.twist.linear.z = odometry.velocity.z();
+            // odometry_msg.twist.twist.angular.x = odometry.angular_velocity.x();
+            // odometry_msg.twist.twist.angular.y = odometry.angular_velocity.y();
+            // odometry_msg.twist.twist.angular.z = odometry.angular_velocity.z();
 
             tf_broadcaster->sendTransform(transform_stamped);
             odometry_publisher->publish(odometry_msg);
