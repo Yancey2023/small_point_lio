@@ -1,0 +1,39 @@
+name: ROS2 Jazzy CI
+
+on:
+  push:
+    branches: [ "ros2" ]
+  pull_request:
+    branches: [ "ros2" ]
+
+jobs:
+  build:
+
+    runs-on: 'ubuntu-24.04'
+
+    steps:
+      - name: 安装ROS2
+        run: |
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y curl
+          export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+          curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb"
+          sudo dpkg -i /tmp/ros2-apt-source.deb
+          sudo apt-get update
+          sudo apt-get upgrade -y
+          sudo apt-get install -y ros-jazzy-desktop python3-colcon-common-extensions
+
+      - name: 安装ROS依赖
+        run: sudo apt-get install -y
+          libeigen3-dev
+          ros-jazzy-pcl-ros
+          ros-jazzy-pcl-conversions
+          ros-jazzy-tf2-ros
+      
+      - name: 签出项目
+        uses: actions/checkout@v5
+
+      - name: 编译
+        run: source /opt/ros/jazzy/setup.sh && colcon build

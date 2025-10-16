@@ -1,0 +1,54 @@
+name: ROS2 Humble CI with Livox Driver
+
+on:
+  push:
+    branches: [ "ros2" ]
+  pull_request:
+    branches: [ "ros2" ]
+
+jobs:
+  build:
+
+    runs-on: 'ubuntu-22.04'
+
+    steps:
+      - name: 安装ROS2
+        run: |
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y curl
+          export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+          curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb"
+          sudo dpkg -i /tmp/ros2-apt-source.deb
+          sudo apt-get update
+          sudo apt-get upgrade -y
+          sudo apt-get install -y ros-humble-desktop python3-colcon-common-extensions
+
+      - name: 安装ROS依赖
+        run: sudo apt-get install -y
+          libeigen3-dev
+          ros-humble-pcl-ros
+          ros-humble-pcl-conversions
+          ros-humble-tf2-ros
+      
+      - name: 安装Livox-SDK2
+        run: |
+          export CMAKE_BUILD_PARALLEL_LEVEL=$(($(nproc) - 1))
+          git clone https://github.com/Livox-SDK/Livox-SDK2.git
+          cd Livox-SDK2
+          cmake -B ./build -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
+          sudo cmake --build ./build --target install
+      
+      - name: 安装livox_ros_driver2
+        run: |
+          git clone https://github.com/SMBU-PolarBear-Robotics-Team/livox_ros_driver2.git
+          cd livox_ros_driver2
+          source /opt/ros/humble/setup.sh && colcon build
+          sudo cp -r install/livox_ros_driver2 /opt/ros/humble/livox_ros_driver2/
+      
+      - name: 签出项目
+        uses: actions/checkout@v5
+
+      - name: 编译
+        run: source /opt/ros/humble/setup.sh && colcon build
