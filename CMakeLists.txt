@@ -39,12 +39,20 @@ find_package(ament_cmake_auto REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OpenMP REQUIRED)
-ament_auto_find_build_dependencies()
+find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(livox_ros_driver2 QUIET)
 if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
-find_package(livox_ros_driver2 QUIET)
 if(livox_ros_driver2_FOUND)
     message(STATUS "Found livox_ros_driver2, enabling Livox lidar support.")
     add_definitions(-DHAVE_LIVOX_DRIVER)
@@ -70,9 +78,21 @@ target_link_libraries(${PROJECT_NAME}
     Eigen3::Eigen
     ${PCL_LIBRARIES}
 )
+ament_target_dependencies(${PROJECT_NAME}
+    rclcpp
+    rclpy
+    sensor_msgs
+    geometry_msgs
+    nav_msgs
+    tf2_ros
+    pcl_ros
+    pcl_conversions
+    std_srvs
+)
 if(livox_ros_driver2_FOUND)
-    target_include_directories(${PROJECT_NAME} PUBLIC ${livox_ros_driver2_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} ${livox_ros_driver2_LIBRARIES})
+    ament_target_dependencies(${PROJECT_NAME}
+        livox_ros_driver2
+    )
 endif()
 
 rclcpp_components_register_node(${PROJECT_NAME}
