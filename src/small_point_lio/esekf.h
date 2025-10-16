@@ -40,16 +40,16 @@ namespace small_point_lio {
         state() = default;
 
         inline void plus(const Eigen::Matrix<value_type, DIM, 1> &vec) {
-            position += vec.block<3, 1>(position_index, 0);
-            rotation *= exp<value_type>(vec.block<3, 1>(rotation_index, 0));
-            offset_R_L_I *= exp<value_type>(vec.block<3, 1>(offset_R_L_I_index, 0));
-            offset_T_L_I += vec.block<3, 1>(offset_T_L_I_index, 0);
-            velocity += vec.block<3, 1>(velocity_index, 0);
-            omg += vec.block<3, 1>(omg_index, 0);
-            acceleration += vec.block<3, 1>(acceleration_index, 0);
-            gravity += vec.block<3, 1>(gravity_index, 0);
-            bg += vec.block<3, 1>(bg_index, 0);
-            ba += vec.block<3, 1>(ba_index, 0);
+            position += vec.segment<3>(position_index);
+            rotation *= exp<value_type>(vec.segment<3>(rotation_index));
+            offset_R_L_I *= exp<value_type>(vec.segment<3>(offset_R_L_I_index));
+            offset_T_L_I += vec.segment<3>(offset_T_L_I_index);
+            velocity += vec.segment<3>(velocity_index);
+            omg += vec.segment<3>(omg_index, 0);
+            acceleration += vec.segment<3>(acceleration_index);
+            gravity += vec.segment<3>(gravity_index);
+            bg += vec.segment<3>(bg_index);
+            ba += vec.segment<3>(ba_index);
         }
     };
 

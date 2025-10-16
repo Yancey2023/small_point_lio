@@ -48,9 +48,9 @@ namespace small_point_lio {
 
     Eigen::Matrix<state::value_type, state::DIM, 1> Estimator::f_x(const state &s) {
         Eigen::Matrix<state::value_type, state::DIM, 1> res = Eigen::Matrix<state::value_type, state::DIM, 1>::Zero();
-        res.block<3, 1>(state::position_index, 0) = s.velocity;
-        res.block<3, 1>(state::rotation_index, 0) = s.omg;
-        res.block<3, 1>(state::velocity_index, 0) = s.rotation * s.acceleration + s.gravity;
+        res.segment<3>(state::position_index) = s.velocity;
+        res.segment<3>(state::rotation_index) = s.omg;
+        res.segment<3>(state::velocity_index) = s.rotation * s.acceleration + s.gravity;
         return res;
     }
 
@@ -145,8 +145,8 @@ namespace small_point_lio {
 
     void Estimator::h_imu(const state &s, imu_measurement_result &measurement_result) {
         std::memset(measurement_result.satu_check, false, 6);
-        measurement_result.z.block<3, 1>(0, 0) = angular_velocity - s.omg - s.bg;
-        measurement_result.z.block<3, 1>(3, 0) = linear_acceleration * G_m_s2 / parameters->acc_norm - s.acceleration - s.ba;
+        measurement_result.z.segment<3>(0) = angular_velocity - s.omg - s.bg;
+        measurement_result.z.segment<3>(3) = linear_acceleration * G_m_s2 / parameters->acc_norm - s.acceleration - s.ba;
         measurement_result.R << parameters->imu_meas_omg_cov, parameters->imu_meas_omg_cov, parameters->imu_meas_omg_cov, parameters->imu_meas_acc_cov, parameters->imu_meas_acc_cov, parameters->imu_meas_acc_cov;
         if (parameters->check_satu) {
             if (fabs(angular_velocity(0)) >= parameters->satu_gyro) {
