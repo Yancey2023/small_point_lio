@@ -45,7 +45,7 @@ namespace small_point_lio {
             offset_R_L_I *= exp<value_type>(vec.segment<3>(offset_R_L_I_index));
             offset_T_L_I += vec.segment<3>(offset_T_L_I_index);
             velocity += vec.segment<3>(velocity_index);
-            omg += vec.segment<3>(omg_index, 0);
+            omg += vec.segment<3>(omg_index);
             acceleration += vec.segment<3>(acceleration_index);
             gravity += vec.segment<3>(gravity_index);
             bg += vec.segment<3>(bg_index);
