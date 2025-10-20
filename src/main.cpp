@@ -63,7 +63,7 @@ int main() {
             pointcloud.reserve(msg.points.size());
             for (size_t i = 0; i < msg.points.size(); ++i) {
                 livox_ros_driver2::msg::CustomPoint &point = msg.points[i];
-                if ((point.tag & 0b010000) != 0b00000000 || (point.tag & 0b00001100) != 0b00000000 || (point.tag & 0b00000011) != 0b00000000) {
+                if ((point.tag & 0b00110000) != 0b00000000 || (point.tag & 0b00001100) != 0b00000000 || (point.tag & 0b00000011) != 0b00000000) {
                     continue;
                 }
                 common::Point new_point;
