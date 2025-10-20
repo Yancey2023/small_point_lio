@@ -123,9 +123,6 @@ namespace small_point_lio {
                 is_last_point_update = true;
                 preprocess.point_deque.pop_front();
             } else {
-                // imu update
-                time_current = imu_msg.timestamp;
-
                 // publish odometry and pointcloud
                 if (is_last_point_update && preprocess.imu_deque.size() == 1) {
                     if (!parameters.publish_odometry_without_downsample) {
@@ -138,6 +135,9 @@ namespace small_point_lio {
                         pointcloud_odom_frame.clear();
                     }
                 }
+
+                // imu update
+                time_current = imu_msg.timestamp;
 
                 // predict
                 auto dt = static_cast<state::value_type>(time_current - time_predict_last);
