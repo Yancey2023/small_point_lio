@@ -35,21 +35,25 @@ namespace small_point_lio {
                         RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "pcd save is disabled");
                         return;
                     }
-                    voxelgrid_sampling::VoxelgridSampling downsampler;
-                    std::vector<Eigen::Vector3f> downsampled;
-                    downsampler.voxelgrid_sampling_omp(pointcloud_to_save, downsampled, 0.02);
-                    pcl::PointCloud<pcl::PointXYZI> pcl_pointcloud;
-                    pcl_pointcloud.reserve(downsampled.size());
-                    for (const auto &point: downsampled) {
-                        pcl::PointXYZI new_point;
-                        new_point.x = point.x();
-                        new_point.y = point.y();
-                        new_point.z = point.z();
-                        pcl_pointcloud.push_back(new_point);
-                    }
-                    pcl::PCDWriter writer;
-                    writer.writeBinary(ROOT_DIR + "/pcd/scan.pcd", pcl_pointcloud);
-                    RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "save pcd success");
+                    RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "waiting for pcd saving ...");
+                    auto pointcloud_to_save_copy = std::make_shared<std::vector<Eigen::Vector3f>>(pointcloud_to_save);
+                    std::thread([pointcloud_to_save_copy]() {
+                        voxelgrid_sampling::VoxelgridSampling downsampler;
+                        std::vector<Eigen::Vector3f> downsampled;
+                        downsampler.voxelgrid_sampling_omp(*pointcloud_to_save_copy, downsampled, 0.02);
+                        pcl::PointCloud<pcl::PointXYZI> pcl_pointcloud;
+                        pcl_pointcloud.reserve(downsampled.size());
+                        for (const auto &point: downsampled) {
+                            pcl::PointXYZI new_point;
+                            new_point.x = point.x();
+                            new_point.y = point.y();
+                            new_point.z = point.z();
+                            pcl_pointcloud.push_back(new_point);
+                        }
+                        pcl::PCDWriter writer;
+                        writer.writeBinary(ROOT_DIR + "/pcd/scan.pcd", pcl_pointcloud);
+                        RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "save pcd success");
+                    }).detach();
                 });
         small_point_lio->set_odometry_callback([this, lidar_frame](const common::Odometry &odometry) {
             last_odometry = odometry;
