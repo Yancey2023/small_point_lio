@@ -78,14 +78,8 @@ namespace small_point_lio {
             return;
         }
 
-        // judge if we should publish odometry, because we want a normal odometry frequency
-        bool is_publish_odometry =
-                !preprocess.imu_deque.empty() &&
-                !preprocess.point_deque.empty() &&
-                preprocess.point_deque.front().timestamp < preprocess.imu_deque.back().timestamp &&
-                preprocess.point_deque.back().timestamp > preprocess.imu_deque.front().timestamp;
-
         // judge we should do point update or imu update
+        bool is_last_point_update = false;
         while (!preprocess.imu_deque.empty() && !preprocess.dense_point_deque.empty() && !preprocess.point_deque.empty()) {
             const common::Point &point_lidar_frame = preprocess.point_deque.front();
             const common::Point &dense_point_lidar_frame = preprocess.dense_point_deque.front();
@@ -100,6 +94,7 @@ namespace small_point_lio {
                 }
                 pointcloud_odom_frame.emplace_back((estimator.kf.x.rotation * dense_point_imu_frame + estimator.kf.x.position).cast<float>());
 
+                is_last_point_update = false;
                 preprocess.dense_point_deque.pop_front();
             } else if (point_lidar_frame.timestamp < imu_msg.timestamp) {
                 // point update
@@ -125,10 +120,24 @@ namespace small_point_lio {
                 // map incremental
                 estimator.ivox->add_point(estimator.point_odom_frame);
 
+                is_last_point_update = true;
                 preprocess.point_deque.pop_front();
             } else {
                 // imu update
                 time_current = imu_msg.timestamp;
+
+                // publish odometry and pointcloud
+                if (is_last_point_update && preprocess.imu_deque.size() == 1) {
+                    if (!parameters.publish_odometry_without_downsample) {
+                        publish_odometry(time_current);
+                    }
+                    if (!pointcloud_odom_frame.empty()) {
+                        if (pointcloud_callback) {
+                            pointcloud_callback(pointcloud_odom_frame);
+                        }
+                        pointcloud_odom_frame.clear();
+                    }
+                }
 
                 // predict
                 auto dt = static_cast<state::value_type>(time_current - time_predict_last);
@@ -146,23 +155,22 @@ namespace small_point_lio {
                 estimator.kf.predict_prop_cov(dt_cov, Q);
                 estimator.kf.update_iterated_imu();
 
+                is_last_point_update = false;
                 preprocess.imu_deque.pop_front();
             }
         }
 
-        if (!is_publish_odometry) {
-            return;
-        }
-
         // publish odometry and pointcloud
-        if (!parameters.publish_odometry_without_downsample) {
-            publish_odometry(time_current);
-        }
-        if (!pointcloud_odom_frame.empty()) {
-            if (pointcloud_callback) {
-                pointcloud_callback(pointcloud_odom_frame);
+        if (is_last_point_update && preprocess.imu_deque.size() == 1) {
+            if (!parameters.publish_odometry_without_downsample) {
+                publish_odometry(time_current);
             }
-            pointcloud_odom_frame.clear();
+            if (!pointcloud_odom_frame.empty()) {
+                if (pointcloud_callback) {
+                    pointcloud_callback(pointcloud_odom_frame);
+                }
+                pointcloud_odom_frame.clear();
+            }
         }
     }
 
