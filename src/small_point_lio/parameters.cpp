@@ -49,8 +49,8 @@ namespace small_point_lio {
         omg_cov = node.declare_parameter<double>("omg_cov");
         ba_cov = node.declare_parameter<double>("ba_cov");
         bg_cov = node.declare_parameter<double>("bg_cov");
-        plane_thr = node.declare_parameter<double>("plane_thr");
-        match_s = node.declare_parameter<double>("match_s");
+        plane_threshold = node.declare_parameter<double>("plane_threshold");
+        match_sqaured = node.declare_parameter<double>("match_sqaured");
 
         // 数据发布
         publish_odometry_without_downsample = node.declare_parameter<bool>("publish_odometry_without_downsample");

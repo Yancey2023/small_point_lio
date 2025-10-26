@@ -43,8 +43,8 @@ small_point_lio:
         omg_cov: 1000.0                             # 角速度的协方差
         ba_cov: 0.001                               # 加速度偏置的协方差
         bg_cov: 0.001                               # 角速度偏置的协方差
-        plane_thr: 0.1                              # 平面匹配阈值，越小表示越严格
-        match_s: 81.0                               # 当前点是否在平面上的阈值，越小表示越严格
+        plane_threshold: 0.1                        # 平面匹配阈值，越小表示越严格
+        match_sqaured: 81.0                         # 当前点是否在平面上的阈值，越小表示越严格
 
         # 数据发布
         publish_odometry_without_downsample: false  # 是否发布高频的里程计，需要注意的是这并不能提高里程计的实时性，反而会导致性能下降，建议通过增加点云发布频率来获得高频和高实时性的里程计

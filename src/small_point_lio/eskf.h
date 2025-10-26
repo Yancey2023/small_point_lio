@@ -56,23 +56,23 @@ namespace small_point_lio {
     struct point_measurement_result {
         bool valid;
         state::value_type z;
-        Eigen::Matrix<state::value_type, 1, 12> h_x;
-        state::value_type laser_point_cov;
+        Eigen::Matrix<state::value_type, 1, 12> H;
+        state::value_type R;
     };
 
     struct imu_measurement_result {
+        bool satu_check[6];
         Eigen::Matrix<state::value_type, 6, 1> z;
         Eigen::Matrix<state::value_type, 6, 1> R;
-        bool satu_check[6];
     };
 
-    class esekf {
+    class eskf {
     public:
         using cov = Eigen::Matrix<state::value_type, state::DIM, state::DIM>;
         using process_model = std::function<Eigen::Matrix<state::value_type, state::DIM, 1>(const state &)>;
         using process_matrix = std::function<Eigen::Matrix<state::value_type, state::DIM, state::DIM>(const state &)>;
         using process_noise_covariance = Eigen::Matrix<state::value_type, state::DIM, state::DIM>;
-        using measurement_model_point = std::function<void(const state &, const Eigen::Matrix<state::value_type, 3, 3> &, const Eigen::Matrix<state::value_type, 3, 3> &, point_measurement_result &)>;
+        using measurement_model_point = std::function<void(const state &, point_measurement_result &)>;
         using measurement_model_imu = std::function<void(const state &, imu_measurement_result &)>;
 
         state x;
@@ -85,7 +85,7 @@ namespace small_point_lio {
         measurement_model_imu h_imu;
 
     public:
-        esekf() = default;
+        eskf() = default;
 
         inline void init(const process_model &f_x, const process_matrix &df_dx, const measurement_model_point &h_point, const measurement_model_imu &h_imu) {
             this->f_x = f_x;
@@ -121,37 +121,39 @@ namespace small_point_lio {
             P = f_x1 * P * f_x1.transpose() + Q * (dt * dt);
         }
 
-        inline bool update_iterated_point() {
+        inline bool update_point() {
             point_measurement_result measurement_result;
-            h_point(x, P.template block<3, 3>(0, 0), P.template block<3, 3>(3, 3), measurement_result);
+            h_point(x, measurement_result);
             if (!measurement_result.valid) {
                 return false;
             }
-            Eigen::Matrix<state::value_type, state::DIM, 1> PHT = P.template block<state::DIM, 12>(0, 0) * measurement_result.h_x.transpose();
-            Eigen::Matrix<state::value_type, state::DIM, 1> K = PHT / (measurement_result.h_x * PHT.topRows(12) + measurement_result.laser_point_cov);
+            Eigen::Matrix<state::value_type, state::DIM, 1> PHT = P.template block<state::DIM, 12>(0, 0) * measurement_result.H.transpose();
+            Eigen::Matrix<state::value_type, state::DIM, 1> K = PHT / (measurement_result.H * PHT.topRows(12) + measurement_result.R);
             Eigen::Matrix<state::value_type, state::DIM, 1> dx;
             dx.noalias() = K * measurement_result.z;
             x.plus(dx);
-            P = P - K * measurement_result.h_x * P.template block<12, state::DIM>(0, 0);
+            P = P - K * measurement_result.H * P.template block<12, state::DIM>(0, 0);
             return true;
         }
 
-        inline void update_iterated_imu() {
+        inline void update_imu() {
             imu_measurement_result measurement_result;
             h_imu(x, measurement_result);
             Eigen::Matrix<state::value_type, 6, 1> z = measurement_result.z;
             Eigen::Matrix<state::value_type, state::DIM, 6> PHT = Eigen::Matrix<state::value_type, state::DIM, 6>::Zero();
             Eigen::Matrix<state::value_type, 6, state::DIM> HP = Eigen::Matrix<state::value_type, 6, state::DIM>::Zero();
             Eigen::Matrix<state::value_type, 6, 6> HPHT = Eigen::Matrix<state::value_type, 6, 6>::Zero();
+            static_assert(state::acceleration_index - state::omg_index == 3);
+            static_assert(state::ba_index - state::bg_index == 3);
             for (int i = 0; i < 6; i++) {
                 if (!measurement_result.satu_check[i]) {
-                    PHT.col(i) = P.col(15 + i) + P.col(24 + i);
-                    HP.row(i) = P.row(15 + i) + P.row(24 + i);
+                    PHT.col(i) = P.col(state::omg_index + i) + P.col(state::bg_index + i);
+                    HP.row(i) = P.row(state::omg_index + i) + P.row(state::bg_index + i);
                 }
             }
             for (int i = 0; i < 6; i++) {
                 if (!measurement_result.satu_check[i]) {
-                    HPHT.col(i) = HP.col(15 + i) + HP.col(24 + i);
+                    HPHT.col(i) = HP.col(state::omg_index + i) + HP.col(state::bg_index + i);
                 }
                 HPHT(i, i) += measurement_result.R(i);
             }
