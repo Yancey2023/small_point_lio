@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "esekf.h"
+#include "eskf.h"
 #include "parameters.h"
 #include "small_ivox.h"
 #include <small_point_lio/pch.h>
@@ -17,9 +17,9 @@ namespace small_point_lio {
     public:
         // for common
         Parameters *parameters = nullptr;
-        esekf kf;
-        std::shared_ptr<SmallIVox> ivox;
+        eskf kf;
         // for h_point
+        std::shared_ptr<SmallIVox> ivox;
         Eigen::Matrix<state::value_type, 3, 1> Lidar_T_wrt_IMU;
         Eigen::Matrix<state::value_type, 3, 3> Lidar_R_wrt_IMU;
         Eigen::Vector3f point_lidar_frame;
@@ -40,7 +40,7 @@ namespace small_point_lio {
 
         Eigen::Matrix<state::value_type, state::DIM, state::DIM> df_dx(const state &s);
 
-        void h_point(const state &s, const Eigen::Matrix<state::value_type, 3, 3> &cov_p, const Eigen::Matrix<state::value_type, 3, 3> &cov_R, point_measurement_result &measurement_resulta);
+        void h_point(const state &s, point_measurement_result &measurement_result);
 
         void h_imu(const state &s, imu_measurement_result &ekfom_data);
     };

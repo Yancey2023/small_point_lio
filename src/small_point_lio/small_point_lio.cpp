@@ -110,7 +110,7 @@ namespace small_point_lio {
 
                 // update
                 estimator.point_lidar_frame = point_lidar_frame.position;
-                estimator.kf.update_iterated_point();
+                estimator.kf.update_point();
 
                 // publish odometry
                 if (parameters.publish_odometry_without_downsample) {
@@ -153,7 +153,7 @@ namespace small_point_lio {
                 auto dt_cov = static_cast<state::value_type>(time_current - time_update_last);
                 time_update_last = time_current;
                 estimator.kf.predict_prop_cov(dt_cov, Q);
-                estimator.kf.update_iterated_imu();
+                estimator.kf.update_imu();
 
                 is_last_point_update = false;
                 preprocess.imu_deque.pop_front();

@@ -18,8 +18,8 @@ namespace small_point_lio {
                 [this](auto &&s) {
                     return df_dx(s);
                 },
-                [this](auto &&s, auto &&cov_p, auto &&cov_R, auto &&measurement_result) {
-                    return h_point(s, cov_p, cov_R, measurement_result);
+                [this](auto &&s, auto &&measurement_result) {
+                    return h_point(s, measurement_result);
                 },
                 [this](auto &&s, auto &&measurement_result) {
                     return h_imu(s, measurement_result);
@@ -36,8 +36,7 @@ namespace small_point_lio {
     }
 
     Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::process_noise_cov() {
-        Eigen::Matrix<state::value_type, state::DIM, state::DIM> cov;
-        cov.setZero();
+        Eigen::Matrix<state::value_type, state::DIM, state::DIM> cov = Eigen::Matrix<state::value_type, state::DIM, state::DIM>::Zero();
         cov.block<3, 3>(state::velocity_index, state::velocity_index).diagonal() << parameters->velocity_cov, parameters->velocity_cov, parameters->velocity_cov;
         cov.block<3, 3>(state::omg_index, state::omg_index).diagonal() << parameters->omg_cov, parameters->omg_cov, parameters->omg_cov;
         cov.block<3, 3>(state::acceleration_index, state::acceleration_index).diagonal() << parameters->acceleration_cov, parameters->acceleration_cov, parameters->acceleration_cov;
@@ -56,19 +55,16 @@ namespace small_point_lio {
 
     Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::df_dx(const state &s) {
         Eigen::Matrix<state::value_type, state::DIM, state::DIM> cov = Eigen::Matrix<state::value_type, state::DIM, state::DIM>::Zero();
-        cov.block<3, 3>(0, 12) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
-        cov.block<3, 3>(12, 3) = -s.rotation * hat<state::value_type>(s.acceleration);
-        cov.block<3, 3>(12, 18) = s.rotation;
-        cov.block<3, 3>(12, 21) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
-        cov.block<3, 3>(3, 15) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
+        cov.block<3, 3>(state::position_index, state::velocity_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
+        cov.block<3, 3>(state::velocity_index, state::rotation_index) = -s.rotation * hat<state::value_type>(s.acceleration);
+        cov.block<3, 3>(state::velocity_index, state::acceleration_index) = s.rotation;
+        cov.block<3, 3>(state::velocity_index, state::gravity_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
+        cov.block<3, 3>(state::rotation_index, state::omg_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
         return cov;
     }
 
-    void Estimator::h_point(const state &s, const Eigen::Matrix<state::value_type, 3, 3> &cov_p, const Eigen::Matrix<state::value_type, 3, 3> &cov_R, point_measurement_result &measurement_result) {
+    void Estimator::h_point(const state &s, point_measurement_result &measurement_result) {
         measurement_result.valid = false;
-        Eigen::Vector4f pabcd;
-        pabcd.setZero();
-        Eigen::Vector4f normvec;
         // get closest point
         Eigen::Matrix<state::value_type, 3, 1> point_imu_frame;
         if (parameters->extrinsic_est_en) {
@@ -89,9 +85,8 @@ namespace small_point_lio {
         }
         Eigen::Matrix<float, NUM_MATCH_POINTS, 1> b;
         b.setConstant(-1);
-        Eigen::Vector3f norm_vec = A.colPivHouseholderQr().solve(b);
-        float n = norm_vec.norm();
-        pabcd << norm_vec / n, 1.0f / n;
+        Eigen::Vector3f normal = A.colPivHouseholderQr().solve(b);
+        float d = 1.0f / normal.norm();
 #else
         Eigen::Vector3f centroid = Eigen::Vector3f::Zero();
         for (const auto &p: nearest_points) {
@@ -106,40 +101,34 @@ namespace small_point_lio {
         covariance /= (nearest_points.size() - 1);
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance);
         Eigen::Vector3f normal = solver.eigenvectors().col(0);
-        pabcd << normal, -normal.dot(centroid);
+        float d = -normal.dot(centroid);
 #endif
-        Eigen::Vector4f point_homo;
         for (int j = 0; j < NUM_MATCH_POINTS; j++) {
-            point_homo << nearest_points[j], 1.0f;
-            float pd2 = fabs(pabcd.dot(point_homo));
-            if (pd2 > parameters->plane_thr) {
+            float point_distanace = fabs(normal.dot(nearest_points[j]) + d);
+            if (point_distanace > parameters->plane_threshold) {
                 return;
             }
         }
-        point_homo << point_odom_frame, 1.0f;
-        float pd2 = pabcd.dot(point_homo);
-        if (point_lidar_frame.norm() <= parameters->match_s * pd2 * pd2) {
+        float point_distanace = normal.dot(point_odom_frame) + d;
+        if (point_lidar_frame.norm() <= parameters->match_sqaured * point_distanace * point_distanace) {
             return;
         }
-        measurement_result.laser_point_cov = parameters->laser_point_cov;
-        measurement_result.h_x = Eigen::Matrix<state::value_type, 1, 12>::Zero();
+        // calculate residual and jacobian matrix
+        measurement_result.R = parameters->laser_point_cov;
         if (parameters->extrinsic_est_en) {
-            Eigen::Matrix<state::value_type, 3, 1> pabc = pabcd.head<3>().cast<state::value_type>();
-            Eigen::Matrix<state::value_type, 3, 3> point_lidar_frame_crossmat = hat<state::value_type>(point_lidar_frame.cast<state::value_type>());
-            Eigen::Matrix<state::value_type, 3, 3> point_imu_frame_crossmat = hat<state::value_type>(point_imu_frame.cast<state::value_type>());
-            Eigen::Matrix<state::value_type, 3, 1> C = s.rotation.transpose() * pabc;
+            Eigen::Matrix<state::value_type, 3, 1> normal0 = normal.cast<state::value_type>();
+            Eigen::Matrix<state::value_type, 3, 1> C = s.rotation.transpose() * normal0;
             Eigen::Matrix<state::value_type, 3, 1> A, B;
-            A.noalias() = point_imu_frame_crossmat * C;
-            B.noalias() = point_lidar_frame_crossmat * s.offset_R_L_I.transpose() * C;
-            measurement_result.h_x << pabc.transpose(), A.transpose(), B.transpose(), C.transpose();
+            A.noalias() = point_imu_frame.cross(C);
+            B.noalias() = point_lidar_frame.cast<state::value_type>().cross(s.offset_R_L_I.transpose() * C);
+            measurement_result.H << normal0.transpose(), A.transpose(), B.transpose(), C.transpose();
         } else {
-            Eigen::Matrix<state::value_type, 3, 1> pabc = pabcd.head<3>().cast<state::value_type>();
-            Eigen::Matrix<state::value_type, 3, 3> point_imu_frame_crossmat = hat<state::value_type>(point_imu_frame.cast<state::value_type>());
+            Eigen::Matrix<state::value_type, 3, 1> normal0 = normal.cast<state::value_type>();
             Eigen::Matrix<state::value_type, 3, 1> A;
-            A.noalias() = point_imu_frame_crossmat * s.rotation.transpose() * pabc;
-            measurement_result.h_x << pabc.transpose(), A.transpose(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+            A.noalias() = point_imu_frame.cross(s.rotation.transpose() * normal0);
+            measurement_result.H << normal0.transpose(), A.transpose(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
         }
-        measurement_result.z = -pd2;
+        measurement_result.z = -point_distanace;
         measurement_result.valid = true;
     }
 

@@ -56,8 +56,8 @@ namespace small_point_lio {
         omg_cov = node["omg_cov"].as<double>();
         ba_cov = node["ba_cov"].as<double>();
         bg_cov = node["bg_cov"].as<double>();
-        plane_thr = node["plane_thr"].as<double>();
-        match_s = node["match_s"].as<double>();
+        plane_threshold = node["plane_threshold"].as<double>();
+        match_sqaured = node["match_sqaured"].as<double>();
 
         // 数据发布
         publish_odometry_without_downsample = node["publish_odometry_without_downsample"].as<bool>();
