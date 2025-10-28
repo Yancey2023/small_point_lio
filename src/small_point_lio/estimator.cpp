@@ -35,17 +35,17 @@ namespace small_point_lio {
         kf.x.gravity = parameters->gravity.cast<state::value_type>();
     }
 
-    Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::process_noise_cov() {
+    [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::process_noise_cov() const {
         Eigen::Matrix<state::value_type, state::DIM, state::DIM> cov = Eigen::Matrix<state::value_type, state::DIM, state::DIM>::Zero();
-        cov.block<3, 3>(state::velocity_index, state::velocity_index).diagonal() << parameters->velocity_cov, parameters->velocity_cov, parameters->velocity_cov;
-        cov.block<3, 3>(state::omg_index, state::omg_index).diagonal() << parameters->omg_cov, parameters->omg_cov, parameters->omg_cov;
-        cov.block<3, 3>(state::acceleration_index, state::acceleration_index).diagonal() << parameters->acceleration_cov, parameters->acceleration_cov, parameters->acceleration_cov;
-        cov.block<3, 3>(state::bg_index, state::bg_index).diagonal() << parameters->bg_cov, parameters->bg_cov, parameters->bg_cov;
-        cov.block<3, 3>(state::ba_index, state::ba_index).diagonal() << parameters->ba_cov, parameters->ba_cov, parameters->ba_cov;
+        cov.block<3, 3>(state::velocity_index, state::velocity_index).diagonal().fill(static_cast<state::value_type>(parameters->velocity_cov));
+        cov.block<3, 3>(state::omg_index, state::omg_index).diagonal().fill(static_cast<state::value_type>(parameters->omg_cov));
+        cov.block<3, 3>(state::acceleration_index, state::acceleration_index).diagonal().fill(static_cast<state::value_type>(parameters->acceleration_cov));
+        cov.block<3, 3>(state::bg_index, state::bg_index).diagonal().fill(static_cast<state::value_type>(parameters->bg_cov));
+        cov.block<3, 3>(state::ba_index, state::ba_index).diagonal().fill(static_cast<state::value_type>(parameters->ba_cov));
         return cov;
     }
 
-    Eigen::Matrix<state::value_type, state::DIM, 1> Estimator::f_x(const state &s) {
+    [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, 1> Estimator::f_x(const state &s) const {// NOLINT(readability-convert-member-functions-to-static)
         Eigen::Matrix<state::value_type, state::DIM, 1> res = Eigen::Matrix<state::value_type, state::DIM, 1>::Zero();
         res.segment<3>(state::position_index) = s.velocity;
         res.segment<3>(state::rotation_index) = s.omg;
@@ -53,7 +53,7 @@ namespace small_point_lio {
         return res;
     }
 
-    Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::df_dx(const state &s) {
+    [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::df_dx(const state &s) const {// NOLINT(readability-convert-member-functions-to-static)
         Eigen::Matrix<state::value_type, state::DIM, state::DIM> cov = Eigen::Matrix<state::value_type, state::DIM, state::DIM>::Zero();
         cov.block<3, 3>(state::position_index, state::velocity_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
         cov.block<3, 3>(state::velocity_index, state::rotation_index) = -s.rotation * hat<state::value_type>(s.acceleration);
@@ -92,19 +92,19 @@ namespace small_point_lio {
         for (const auto &p: nearest_points) {
             centroid += p;
         }
-        centroid /= nearest_points.size();
+        centroid /= static_cast<float>(nearest_points.size());
         Eigen::Matrix3f covariance = Eigen::Matrix3f::Zero();
         for (const auto &p: nearest_points) {
             Eigen::Vector3f centered = p - centroid;
             covariance.noalias() += centered * centered.transpose();
         }
-        covariance /= (nearest_points.size() - 1);
+        covariance /= static_cast<float>(nearest_points.size() - 1);
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance);
         Eigen::Vector3f normal = solver.eigenvectors().col(0);
         float d = -normal.dot(centroid);
 #endif
         for (int j = 0; j < NUM_MATCH_POINTS; j++) {
-            float point_distanace = fabs(normal.dot(nearest_points[j]) + d);
+            float point_distanace = std::abs(normal.dot(nearest_points[j]) + d);
             if (point_distanace > parameters->plane_threshold) {
                 return;
             }
@@ -114,7 +114,7 @@ namespace small_point_lio {
             return;
         }
         // calculate residual and jacobian matrix
-        measurement_result.R = parameters->laser_point_cov;
+        measurement_result.laser_point_cov = static_cast<state::value_type>(parameters->laser_point_cov);
         if (parameters->extrinsic_est_en) {
             Eigen::Matrix<state::value_type, 3, 1> normal0 = normal.cast<state::value_type>();
             Eigen::Matrix<state::value_type, 3, 1> C = s.rotation.transpose() * normal0;
@@ -136,36 +136,18 @@ namespace small_point_lio {
         std::memset(measurement_result.satu_check, false, 6);
         measurement_result.z.segment<3>(0) = angular_velocity - s.omg - s.bg;
         measurement_result.z.segment<3>(3) = linear_acceleration * G_m_s2 / parameters->acc_norm - s.acceleration - s.ba;
-        measurement_result.R << parameters->imu_meas_omg_cov, parameters->imu_meas_omg_cov, parameters->imu_meas_omg_cov, parameters->imu_meas_acc_cov, parameters->imu_meas_acc_cov, parameters->imu_meas_acc_cov;
+        measurement_result.imu_meas_omg_cov = static_cast<state::value_type>(parameters->imu_meas_omg_cov);
+        measurement_result.imu_meas_acc_cov = static_cast<state::value_type>(parameters->imu_meas_acc_cov);
         if (parameters->check_satu) {
-            if (fabs(angular_velocity(0)) >= parameters->satu_gyro) {
-                measurement_result.satu_check[0] = true;
-                measurement_result.z(0) = 0.0;
-            }
-
-            if (fabs(angular_velocity(1)) >= parameters->satu_gyro) {
-                measurement_result.satu_check[1] = true;
-                measurement_result.z(1) = 0.0;
-            }
-
-            if (fabs(angular_velocity(2)) >= parameters->satu_gyro) {
-                measurement_result.satu_check[2] = true;
-                measurement_result.z(2) = 0.0;
-            }
-
-            if (fabs(linear_acceleration(0)) >= parameters->satu_acc) {
-                measurement_result.satu_check[3] = true;
-                measurement_result.z(3) = 0.0;
-            }
-
-            if (fabs(linear_acceleration(1)) >= parameters->satu_acc) {
-                measurement_result.satu_check[4] = true;
-                measurement_result.z(4) = 0.0;
-            }
-
-            if (fabs(linear_acceleration(2)) >= parameters->satu_acc) {
-                measurement_result.satu_check[5] = true;
-                measurement_result.z(5) = 0.0;
+            for (int i = 0; i < 3; i++) {
+                if (std::abs(angular_velocity(i)) >= parameters->satu_gyro) {
+                    measurement_result.satu_check[i] = true;
+                    measurement_result.z(i) = 0.0;
+                }
+                if (std::abs(linear_acceleration(i)) >= parameters->satu_acc) {
+                    measurement_result.satu_check[i + 3] = true;
+                    measurement_result.z(i + 3) = 0.0;
+                }
             }
         }
     }

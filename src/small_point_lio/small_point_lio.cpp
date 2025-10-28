@@ -56,7 +56,7 @@ namespace small_point_lio {
                     for (const auto &imu_msg: preprocess.imu_deque) {
                         estimator.kf.x.gravity += imu_msg.linear_acceleration.cast<state::value_type>();
                     }
-                    double scale = -parameters.gravity.norm() / estimator.kf.x.gravity.norm();
+                    state::value_type scale = -static_cast<state::value_type>(parameters.gravity.norm()) / estimator.kf.x.gravity.norm();
                     estimator.kf.x.gravity *= scale;
                 }
                 // init time
