@@ -18,6 +18,7 @@ namespace small_point_lio {
         // for common
         Parameters *parameters = nullptr;
         eskf kf;
+        Eigen::Matrix<state::value_type, 3, 1> gravity;
         // for h_point
         std::shared_ptr<SmallIVox> ivox;
         Eigen::Matrix<state::value_type, 3, 1> Lidar_T_wrt_IMU;
@@ -28,7 +29,7 @@ namespace small_point_lio {
         // for h_imu
         Eigen::Matrix<state::value_type, 3, 1> angular_velocity;
         Eigen::Matrix<state::value_type, 3, 1> linear_acceleration;
-        double G_m_s2 = 9.81;
+        double imu_acceleration_scale;
 
         Estimator();
 
