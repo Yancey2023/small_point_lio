@@ -28,21 +28,21 @@ namespace small_point_lio {
         // for h_imu
         Eigen::Matrix<state::value_type, 3, 1> angular_velocity;
         Eigen::Matrix<state::value_type, 3, 1> linear_acceleration;
-        double G_m_s2;
+        double G_m_s2 = 9.81;
 
         Estimator();
 
         void reset();
 
-        Eigen::Matrix<state::value_type, state::DIM, state::DIM> process_noise_cov();
+        [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> process_noise_cov() const;
 
-        Eigen::Matrix<state::value_type, state::DIM, 1> f_x(const state &s);
+        [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, 1> f_x(const state &s) const;
 
-        Eigen::Matrix<state::value_type, state::DIM, state::DIM> df_dx(const state &s);
+        [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> df_dx(const state &s) const;
 
         void h_point(const state &s, point_measurement_result &measurement_result);
 
-        void h_imu(const state &s, imu_measurement_result &ekfom_data);
+        void h_imu(const state &s, imu_measurement_result &measurement_result);
     };
 
 }// namespace small_point_lio

@@ -53,17 +53,18 @@ namespace small_point_lio {
         }
     };
 
-    struct point_measurement_result {
+    struct point_measurement_result {// NOLINT(cppcoreguidelines-pro-type-member-init)
         bool valid;
         state::value_type z;
         Eigen::Matrix<state::value_type, 1, 12> H;
-        state::value_type R;
+        state::value_type laser_point_cov;
     };
 
-    struct imu_measurement_result {
+    struct imu_measurement_result {// NOLINT(cppcoreguidelines-pro-type-member-init)
         bool satu_check[6];
         Eigen::Matrix<state::value_type, 6, 1> z;
-        Eigen::Matrix<state::value_type, 6, 1> R;
+        state::value_type imu_meas_omg_cov;
+        state::value_type imu_meas_acc_cov;
     };
 
     class eskf {
@@ -128,7 +129,7 @@ namespace small_point_lio {
                 return false;
             }
             Eigen::Matrix<state::value_type, state::DIM, 1> PHT = P.template block<state::DIM, 12>(0, 0) * measurement_result.H.transpose();
-            Eigen::Matrix<state::value_type, state::DIM, 1> K = PHT / (measurement_result.H * PHT.topRows(12) + measurement_result.R);
+            Eigen::Matrix<state::value_type, state::DIM, 1> K = PHT / (measurement_result.H * PHT.topRows(12) + measurement_result.laser_point_cov);
             Eigen::Matrix<state::value_type, state::DIM, 1> dx;
             dx.noalias() = K * measurement_result.z;
             x.plus(dx);
@@ -143,19 +144,25 @@ namespace small_point_lio {
             Eigen::Matrix<state::value_type, state::DIM, 6> PHT = Eigen::Matrix<state::value_type, state::DIM, 6>::Zero();
             Eigen::Matrix<state::value_type, 6, state::DIM> HP = Eigen::Matrix<state::value_type, 6, state::DIM>::Zero();
             Eigen::Matrix<state::value_type, 6, 6> HPHT = Eigen::Matrix<state::value_type, 6, 6>::Zero();
-            static_assert(state::acceleration_index - state::omg_index == 3);
-            static_assert(state::ba_index - state::bg_index == 3);
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 3; i++) {
                 if (!measurement_result.satu_check[i]) {
                     PHT.col(i) = P.col(state::omg_index + i) + P.col(state::bg_index + i);
                     HP.row(i) = P.row(state::omg_index + i) + P.row(state::bg_index + i);
                 }
+                if (!measurement_result.satu_check[i]) {
+                    PHT.col(i + 3) = P.col(state::acceleration_index + i) + P.col(state::ba_index + i);
+                    HP.row(i + 3) = P.row(state::acceleration_index + i) + P.row(state::ba_index + i);
+                }
             }
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 3; i++) {
                 if (!measurement_result.satu_check[i]) {
                     HPHT.col(i) = HP.col(state::omg_index + i) + HP.col(state::bg_index + i);
                 }
-                HPHT(i, i) += measurement_result.R(i);
+                if (!measurement_result.satu_check[i]) {
+                    HPHT.col(i + 3) = HP.col(state::acceleration_index + i) + HP.col(state::ba_index + i);
+                }
+                HPHT(i, i) += measurement_result.imu_meas_omg_cov;
+                HPHT(i + 3, i + 3) += measurement_result.imu_meas_acc_cov;
             }
             Eigen::Matrix<state::value_type, state::DIM, 6> K = PHT * HPHT.inverse();
             Eigen::Matrix<state::value_type, state::DIM, 1> dx = K * z;
