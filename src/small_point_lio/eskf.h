@@ -14,7 +14,7 @@ namespace small_point_lio {
     struct state {
         using value_type = double;
 
-        constexpr static int DIM = 30;
+        constexpr static int DIM = 27;
         constexpr static int position_index = 0;
         constexpr static int rotation_index = 3;
         constexpr static int offset_R_L_I_index = 6;
@@ -22,9 +22,8 @@ namespace small_point_lio {
         constexpr static int velocity_index = 12;
         constexpr static int omg_index = 15;
         constexpr static int acceleration_index = 18;
-        constexpr static int gravity_index = 21;
-        constexpr static int bg_index = 24;
-        constexpr static int ba_index = 27;
+        constexpr static int bg_index = 21;
+        constexpr static int ba_index = 24;
 
         Eigen::Matrix<value_type, 3, 1> position = Eigen::Matrix<value_type, 3, 1>::Zero();        // 位置
         Eigen::Matrix<value_type, 3, 3> rotation = Eigen::Matrix<value_type, 3, 3>::Identity();    // 旋转
@@ -33,7 +32,6 @@ namespace small_point_lio {
         Eigen::Matrix<value_type, 3, 1> velocity = Eigen::Matrix<value_type, 3, 1>::Zero();        // 速度
         Eigen::Matrix<value_type, 3, 1> omg = Eigen::Matrix<value_type, 3, 1>::Zero();             // 角速度
         Eigen::Matrix<value_type, 3, 1> acceleration = Eigen::Matrix<value_type, 3, 1>::Zero();    // 加速度
-        Eigen::Matrix<value_type, 3, 1> gravity = Eigen::Matrix<value_type, 3, 1>::Zero();         // 重力
         Eigen::Matrix<value_type, 3, 1> bg = Eigen::Matrix<value_type, 3, 1>::Zero();              // 陀螺仪零偏
         Eigen::Matrix<value_type, 3, 1> ba = Eigen::Matrix<value_type, 3, 1>::Zero();              // 加速度零偏
 
@@ -47,7 +45,6 @@ namespace small_point_lio {
             velocity += vec.segment<3>(velocity_index);
             omg += vec.segment<3>(omg_index);
             acceleration += vec.segment<3>(acceleration_index);
-            gravity += vec.segment<3>(gravity_index);
             bg += vec.segment<3>(bg_index);
             ba += vec.segment<3>(ba_index);
         }
