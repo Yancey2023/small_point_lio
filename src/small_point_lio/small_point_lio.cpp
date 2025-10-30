@@ -20,7 +20,7 @@ namespace small_point_lio {
             estimator.kf.x.offset_R_L_I = parameters.extrinsic_R.cast<state::value_type>();
         }
         Q = estimator.process_noise_cov();
-        estimator.imu_acceleration_scale = parameters.gravity.norm() / parameters.acc_norm;
+        estimator.G_m_s2 = parameters.gravity.norm();
 
         // init data
         reset();
@@ -52,12 +52,12 @@ namespace small_point_lio {
                 }
                 // fix gravity direction
                 if (parameters.fix_gravity_direction) {
-                    estimator.gravity = Eigen::Matrix<state::value_type, 3, 1>::Zero();
+                    estimator.kf.x.gravity = Eigen::Matrix<state::value_type, 3, 1>::Zero();
                     for (const auto &imu_msg: preprocess.imu_deque) {
-                        estimator.gravity += imu_msg.linear_acceleration.cast<state::value_type>();
+                        estimator.kf.x.gravity += imu_msg.linear_acceleration.cast<state::value_type>();
                     }
-                    state::value_type scale = -static_cast<state::value_type>(parameters.gravity.norm()) / estimator.gravity.norm();
-                    estimator.gravity *= scale;
+                    state::value_type scale = -static_cast<state::value_type>(parameters.gravity.norm()) / estimator.kf.x.gravity.norm();
+                    estimator.kf.x.gravity *= scale;
                 }
                 // init time
                 if (preprocess.point_deque.empty()) {

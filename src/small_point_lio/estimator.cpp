@@ -10,7 +10,7 @@ namespace small_point_lio {
 
     constexpr int NUM_MATCH_POINTS = 5;
 
-    Estimator::Estimator() {// NOLINT(cppcoreguidelines-pro-type-member-init)
+    Estimator::Estimator() {
         kf.init(
                 [this](auto &&s) {
                     return f_x(s);
@@ -29,9 +29,10 @@ namespace small_point_lio {
     void Estimator::reset() {
         ivox = std::make_shared<SmallIVox>(parameters->map_resolution, 1000000);
         kf.P = Eigen::Matrix<state::value_type, state::DIM, state::DIM>::Identity() * 0.01;
+        kf.P.block<3, 3>(state::gravity_index, state::gravity_index).diagonal().fill(0.0001);
         kf.P.block<3, 3>(state::bg_index, state::bg_index).diagonal().fill(0.001);
         kf.P.block<3, 3>(state::ba_index, state::ba_index).diagonal().fill(0.001);
-        gravity = parameters->gravity.cast<state::value_type>();
+        kf.x.gravity = parameters->gravity.cast<state::value_type>();
     }
 
     [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::process_noise_cov() const {
@@ -48,7 +49,7 @@ namespace small_point_lio {
         Eigen::Matrix<state::value_type, state::DIM, 1> res = Eigen::Matrix<state::value_type, state::DIM, 1>::Zero();
         res.segment<3>(state::position_index) = s.velocity;
         res.segment<3>(state::rotation_index) = s.omg;
-        res.segment<3>(state::velocity_index) = s.rotation * s.acceleration + gravity;
+        res.segment<3>(state::velocity_index) = s.rotation * s.acceleration + s.gravity;
         return res;
     }
 
@@ -57,6 +58,7 @@ namespace small_point_lio {
         cov.block<3, 3>(state::position_index, state::velocity_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
         cov.block<3, 3>(state::velocity_index, state::rotation_index) = -s.rotation * hat<state::value_type>(s.acceleration);
         cov.block<3, 3>(state::velocity_index, state::acceleration_index) = s.rotation;
+        cov.block<3, 3>(state::velocity_index, state::gravity_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
         cov.block<3, 3>(state::rotation_index, state::omg_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
         return cov;
     }
@@ -133,7 +135,7 @@ namespace small_point_lio {
     void Estimator::h_imu(const state &s, imu_measurement_result &measurement_result) {
         std::memset(measurement_result.satu_check, false, 6);
         measurement_result.z.segment<3>(0) = angular_velocity - s.omg - s.bg;
-        measurement_result.z.segment<3>(3) = linear_acceleration * imu_acceleration_scale - s.acceleration - s.ba;
+        measurement_result.z.segment<3>(3) = linear_acceleration * G_m_s2 / parameters->acc_norm - s.acceleration - s.ba;
         measurement_result.imu_meas_omg_cov = static_cast<state::value_type>(parameters->imu_meas_omg_cov);
         measurement_result.imu_meas_acc_cov = static_cast<state::value_type>(parameters->imu_meas_acc_cov);
         if (parameters->check_satu) {
