@@ -20,7 +20,7 @@ namespace small_point_lio {
             estimator.kf.x.offset_R_L_I = parameters.extrinsic_R.cast<state::value_type>();
         }
         Q = estimator.process_noise_cov();
-        estimator.G_m_s2 = parameters.gravity.norm();
+        estimator.imu_acceleration_scale = parameters.gravity.norm() / parameters.acc_norm;
 
         // init data
         reset();
@@ -79,7 +79,7 @@ namespace small_point_lio {
         }
 
         // judge we should do point update or imu update
-        bool is_last_point_update = false;
+        bool is_last_point_update = true;
         while (!preprocess.imu_deque.empty() && !preprocess.dense_point_deque.empty() && !preprocess.point_deque.empty()) {
             const common::Point &point_lidar_frame = preprocess.point_deque.front();
             const common::Point &dense_point_lidar_frame = preprocess.dense_point_deque.front();
@@ -94,7 +94,6 @@ namespace small_point_lio {
                 }
                 pointcloud_odom_frame.emplace_back((estimator.kf.x.rotation * dense_point_imu_frame + estimator.kf.x.position).cast<float>());
 
-                is_last_point_update = false;
                 preprocess.dense_point_deque.pop_front();
             } else if (point_lidar_frame.timestamp < imu_msg.timestamp) {
                 // point update
@@ -157,19 +156,6 @@ namespace small_point_lio {
 
                 is_last_point_update = false;
                 preprocess.imu_deque.pop_front();
-            }
-        }
-
-        // publish odometry and pointcloud
-        if (is_last_point_update && preprocess.imu_deque.size() == 1) {
-            if (!parameters.publish_odometry_without_downsample) {
-                publish_odometry(time_current);
-            }
-            if (!pointcloud_odom_frame.empty()) {
-                if (pointcloud_callback) {
-                    pointcloud_callback(pointcloud_odom_frame);
-                }
-                pointcloud_odom_frame.clear();
             }
         }
     }
