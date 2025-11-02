@@ -10,7 +10,7 @@ namespace small_point_lio {
 
     constexpr int NUM_MATCH_POINTS = 5;
 
-    Estimator::Estimator() {
+    Estimator::Estimator() {// NOLINT(cppcoreguidelines-pro-type-member-init)
         kf.init(
                 [this](auto &&s) {
                     return f_x(s);
@@ -135,7 +135,7 @@ namespace small_point_lio {
     void Estimator::h_imu(const state &s, imu_measurement_result &measurement_result) {
         std::memset(measurement_result.satu_check, false, 6);
         measurement_result.z.segment<3>(0) = angular_velocity - s.omg - s.bg;
-        measurement_result.z.segment<3>(3) = linear_acceleration * G_m_s2 / parameters->acc_norm - s.acceleration - s.ba;
+        measurement_result.z.segment<3>(3) = linear_acceleration * imu_acceleration_scale - s.acceleration - s.ba;
         measurement_result.imu_meas_omg_cov = static_cast<state::value_type>(parameters->imu_meas_omg_cov);
         measurement_result.imu_meas_acc_cov = static_cast<state::value_type>(parameters->imu_meas_acc_cov);
         if (parameters->check_satu) {

@@ -28,7 +28,7 @@ namespace small_point_lio {
         // for h_imu
         Eigen::Matrix<state::value_type, 3, 1> angular_velocity;
         Eigen::Matrix<state::value_type, 3, 1> linear_acceleration;
-        double G_m_s2 = 9.81;
+        double imu_acceleration_scale;
 
         Estimator();
 
