@@ -97,6 +97,35 @@ namespace visualize {
         shader.Unbind();
     }
 
+    void getRainbowColor(float value, float &r, float &g, float &b) {
+        if (value < 0.2f) {
+            // 红到黄
+            r = 1.0f;
+            g = value / 0.2f;
+            b = 0.0f;
+        } else if (value < 0.4f) {
+            // 黄到绿
+            r = 1.0f - (value - 0.2f) / 0.2f;
+            g = 1.0f;
+            b = 0.0f;
+        } else if (value < 0.6f) {
+            // 绿到青
+            r = 0.0f;
+            g = 1.0f;
+            b = (value - 0.4f) / 0.2f;
+        } else if (value < 0.8f) {
+            // 青到蓝
+            r = 0.0f;
+            g = 1.0f - (value - 0.6f) / 0.2f;
+            b = 1.0f;
+        } else {
+            // 蓝到紫
+            r = (value - 0.8f) / 0.2f;
+            g = 0.0f;
+            b = 1.0f;
+        }
+    }
+
     void Visualize::loop() {
         pangolin::CreateWindowAndBind("Navigation Viewer", 1024, 768);
         glEnable(GL_DEPTH_TEST);
@@ -127,15 +156,19 @@ namespace visualize {
 
             glEnable(GL_DEPTH_TEST);
 
-            if (!is_running) {
-                glLineWidth(2);
-                glColor3f(1.0, 1.0, 1.0);
-                glBegin(GL_POINTS);
-                for (const auto &point: pointcloud_map) {
-                    glVertex3f(point.x(), point.y(), point.z());
-                }
-                glEnd();
+            glBegin(GL_POINTS);
+            for (const auto &point: pointcloud_map) {
+                float z = point.z();
+                constexpr float min_z = 0.0f;
+                constexpr float max_z = 20.0f;
+                float normalized_z = (z - min_z) / (max_z - min_z);
+                normalized_z = std::max(0.0f, std::min(1.0f, normalized_z));
+                float r, g, b;
+                getRainbowColor(normalized_z, r, g, b);
+                glColor3f(r, g, b);
+                glVertex3f(point.x(), point.y(), point.z());
             }
+            glEnd();
 
             glDisable(GL_DEPTH_TEST);
 

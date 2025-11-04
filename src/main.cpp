@@ -27,11 +27,25 @@ int main() {
         visualize.loop();
     });
 
+    std::vector<Eigen::Vector3f> pointcloud_map;
+    size_t downsampled_points_size = 1;
+    voxelgrid_sampling::VoxelgridSampling downsampler;
+    std::vector<Eigen::Vector3f> downsampled;
+
     pointcloud_cache::PointcloudCache pointcloud_cache(config["pointcloud_cache"]);
-    pointcloud_cache.set_callback([&visualize, &path_cache](const std::vector<Eigen::Vector3f> &pointcloud) {
+    pointcloud_cache.set_callback([&](const std::vector<Eigen::Vector3f> &pointcloud) {
+        pointcloud_map.insert(pointcloud_map.end(), pointcloud.begin(), pointcloud.end());
+        if (pointcloud_map.size() > 2000000 * downsampled_points_size) {// 200000000
+            downsampler.voxelgrid_sampling_omp(pointcloud_map, downsampled, 0.02, 12);
+            pointcloud_map = downsampled;
+            ++downsampled_points_size;
+        }
         visualize.mutex.lock();
-        visualize.pointcloud_map.insert(visualize.pointcloud_map.end(), pointcloud.begin(), pointcloud.end());
         visualize.pointcloud_realtime = pointcloud;
+        if (!downsampled.empty()) {
+            std::swap(visualize.pointcloud_map, downsampled);
+            downsampled.clear();
+        }
         visualize.path.insert(visualize.path.end(), path_cache.begin(), path_cache.end());
         visualize.mutex.unlock();
         path_cache.clear();
@@ -48,6 +62,7 @@ int main() {
     auto rosbag_config = config["rosbag"];
     auto path = rosbag_config["path"].as<std::string>();
     auto lidar_topic = rosbag_config["lidar_topic"].as<std::string>();
+    auto lidar_topic_type = rosbag_config["lidar_topic_type"].as<std::string>();
     auto imu_topic = rosbag_config["imu_topic"].as<std::string>();
     rosbag2_cpp::Reader reader = rosbag2_cpp::Reader();
     std::vector<common::Point> pointcloud;
@@ -55,21 +70,45 @@ int main() {
     while (reader.has_next()) {
         std::shared_ptr<rosbag2_storage::SerializedBagMessage> bag_message = reader.read_next();
         if (bag_message->topic_name == lidar_topic) {
-            livox_ros_driver2::msg::CustomMsg msg;
-            rclcpp::SerializedMessage extracted_serialized_msg(*bag_message->serialized_data);
-            rclcpp::Serialization<livox_ros_driver2::msg::CustomMsg> serialization;
-            serialization.deserialize_message(&extracted_serialized_msg, &msg);
-            pointcloud.clear();
-            pointcloud.reserve(msg.points.size());
-            for (size_t i = 0; i < msg.points.size(); ++i) {
-                livox_ros_driver2::msg::CustomPoint &point = msg.points[i];
-                if ((point.tag & 0b00110000) != 0b00000000 || (point.tag & 0b00001100) != 0b00000000 || (point.tag & 0b00000011) != 0b00000000) {
-                    continue;
+            if (lidar_topic_type == "livox_custom_msg") {
+                livox_ros_driver2::msg::CustomMsg msg;
+                rclcpp::SerializedMessage extracted_serialized_msg(*bag_message->serialized_data);
+                rclcpp::Serialization<livox_ros_driver2::msg::CustomMsg> serialization;
+                serialization.deserialize_message(&extracted_serialized_msg, &msg);
+                pointcloud.clear();
+                pointcloud.reserve(msg.points.size());
+                for (size_t i = 0; i < msg.points.size(); ++i) {
+                    livox_ros_driver2::msg::CustomPoint &point = msg.points[i];
+                    if ((point.tag & 0b00110000) != 0b00000000 || (point.tag & 0b00001100) != 0b00000000 || (point.tag & 0b00000011) != 0b00000000) {
+                        continue;
+                    }
+                    common::Point new_point;
+                    new_point.position << point.x, point.y, point.z;
+                    new_point.timestamp = static_cast<double>(msg.timebase + point.offset_time) / 1e9;
+                    pointcloud.push_back(new_point);
                 }
-                common::Point new_point;
-                new_point.position << point.x, point.y, point.z;
-                new_point.timestamp = static_cast<double>(msg.timebase + point.offset_time) / 1e9;
-                pointcloud.push_back(new_point);
+            } else {
+                sensor_msgs::msg::PointCloud2 msg;
+                rclcpp::SerializedMessage extracted_serialized_msg(*bag_message->serialized_data);
+                rclcpp::Serialization<sensor_msgs::msg::PointCloud2> serialization;
+                serialization.deserialize_message(&extracted_serialized_msg, &msg);
+                pointcloud.clear();
+                size_t size = msg.width * msg.height;
+                sensor_msgs::PointCloud2ConstIterator<float> out_x(msg, "x");
+                sensor_msgs::PointCloud2ConstIterator<float> out_y(msg, "y");
+                sensor_msgs::PointCloud2ConstIterator<float> out_z(msg, "z");
+                sensor_msgs::PointCloud2ConstIterator<double> out_timestamp(msg, "timestamp");
+                pointcloud.reserve(size);
+                for (size_t i = 0; i < size; ++i) {
+                    common::Point new_point;
+                    new_point.position << *out_x, *out_y, *out_z;
+                    new_point.timestamp = *out_timestamp;
+                    pointcloud.push_back(new_point);
+                    ++out_x;
+                    ++out_y;
+                    ++out_z;
+                    ++out_timestamp;
+                }
             }
             small_point_lio.on_point_cloud_callback(pointcloud);
         } else if (bag_message->topic_name == imu_topic) {
@@ -88,10 +127,8 @@ int main() {
         small_point_lio.handle_once();
     }
     visualize.mutex.lock();
-    voxelgrid_sampling::VoxelgridSampling downsampler;
-    std::vector<Eigen::Vector3f> downsampled;
-    downsampler.voxelgrid_sampling_omp(visualize.pointcloud_map, downsampled, 0.02);
-    visualize.pointcloud_map = downsampled;
+    downsampler.voxelgrid_sampling_omp(visualize.pointcloud_map, downsampled, 0.02, 12);
+    visualize.pointcloud_map = std::move(downsampled);
     visualize.pointcloud_realtime.clear();
     visualize.is_running = false;
     visualize.mutex.unlock();
