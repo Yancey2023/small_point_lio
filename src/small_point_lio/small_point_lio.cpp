@@ -58,7 +58,10 @@ namespace small_point_lio {
                     }
                     state::value_type scale = -static_cast<state::value_type>(parameters.gravity.norm()) / estimator.kf.x.gravity.norm();
                     estimator.kf.x.gravity *= scale;
+                } else {
+                    estimator.kf.x.gravity = parameters.gravity.cast<state::value_type>();
                 }
+                estimator.kf.x.acceleration = -estimator.kf.x.gravity;
                 // init time
                 if (preprocess.point_deque.empty()) {
                     time_current = preprocess.imu_deque.back().timestamp;

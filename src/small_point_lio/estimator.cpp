@@ -32,7 +32,6 @@ namespace small_point_lio {
         kf.P.block<3, 3>(state::gravity_index, state::gravity_index).diagonal().fill(0.0001);
         kf.P.block<3, 3>(state::bg_index, state::bg_index).diagonal().fill(0.001);
         kf.P.block<3, 3>(state::ba_index, state::ba_index).diagonal().fill(0.001);
-        kf.x.gravity = parameters->gravity.cast<state::value_type>();
     }
 
     [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::process_noise_cov() const {

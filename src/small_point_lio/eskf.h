@@ -105,18 +105,15 @@ namespace small_point_lio {
             auto df_dx_ = df_dx(x);
 
             cov f_x1 = cov::Identity();
-            Eigen::Matrix<state::value_type, 3, 3> res_temp_SO3;
             Eigen::Matrix<state::value_type, 3, 1> seg_SO3;
 
             seg_SO3 = -1 * f_.template block<3, 1>(state::rotation_index, 0) * dt;
             f_x1.template block<3, 3>(state::rotation_index, state::rotation_index) = exp<state::value_type>(seg_SO3);
-            res_temp_SO3 = A_matrix<state::value_type>(seg_SO3);
-            df_dx_.template block<3, 3>(state::rotation_index, 0) = res_temp_SO3 * (df_dx_.template block<3, 3>(state::rotation_index, 0));
+            df_dx_.template block<3, state::DIM>(state::rotation_index, 0) = A_matrix<state::value_type>(seg_SO3) * (df_dx_.template block<3, state::DIM>(state::rotation_index, 0));
 
             seg_SO3 = -1 * f_.template block<3, 1>(state::offset_R_L_I_index, 0) * dt;
             f_x1.template block<3, 3>(state::offset_R_L_I_index, state::offset_R_L_I_index) = exp<state::value_type>(seg_SO3);
-            res_temp_SO3 = A_matrix<state::value_type>(seg_SO3);
-            df_dx_.template block<3, 3>(state::offset_R_L_I_index, 0) = res_temp_SO3 * (df_dx_.template block<3, 3>(state::offset_R_L_I_index, 0));
+            df_dx_.template block<3, state::DIM>(state::offset_R_L_I_index, 0) = A_matrix<state::value_type>(seg_SO3) * (df_dx_.template block<3, state::DIM>(state::offset_R_L_I_index, 0));
 
             f_x1 += df_dx_ * dt;
             P = f_x1 * P * f_x1.transpose() + Q * (dt * dt);
