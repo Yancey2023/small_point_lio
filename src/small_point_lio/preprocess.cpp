@@ -12,8 +12,10 @@ namespace small_point_lio {
     void Preprocess::reset() {
         imu_deque.clear();
         point_deque.clear();
+        dense_point_deque.clear();
         last_timestamp_lidar = -1;
         last_timestamp_imu = -1;
+        last_timestamp_dense_point = -1;
     }
 
     void Preprocess::on_point_cloud_callback(const std::vector<common::Point> &pointcloud) {
