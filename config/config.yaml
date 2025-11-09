@@ -1,11 +1,13 @@
 rosbag:
-    path: /home/yancey/cpp/navigation/rosbag2_mid360_10hz/rosbag2_mid360_10hz.db3
+    path: /home/yancey/ros/rosbag/Mid-360/rosbag2_mid360_10hz/rosbag2_mid360_10hz.db3
     lidar_topic: /livox/lidar
+    lidar_topic_type: livox_custom_msg
     imu_topic: /livox/imu
 
 # rosbag:
-#     path: /home/yancey/cpp/navigation/rosbag2_mid360_100hz/rosbag2_mid360_100hz.db3
+#     path: /home/yancey/ros/rosbag/Mid-360/rosbag2_mid360_100hz/rosbag2_mid360_100hz.db3
 #     lidar_topic: /livox/lidar
+#     lidar_topic_type: livox_custom_msg
 #     imu_topic: /livox/imu
 
 pointcloud_cache:

@@ -93,7 +93,7 @@ namespace voxelgrid_sampling {
         for (size_t i = 0; i < points.size(); i++) {
             const Eigen::Array3i coord = fast_floor(points[i] * inv_leaf_size) + coord_offset;
             if ((coord < 0).any() || (coord > coord_bit_mask).any()) {
-                SPDLOG_ERROR("voxel coord is out of range!!");
+                // SPDLOG_ERROR("voxel coord is out of range!!");
                 coord_pt[i] = {invalid_coord, i};
                 continue;
             }
@@ -159,7 +159,7 @@ namespace voxelgrid_sampling {
         for (size_t i = 0; i < points.size(); i++) {
             const Eigen::Array3i coord = fast_floor(points[i].position * inv_leaf_size) + coord_offset;
             if ((coord < 0).any() || (coord > coord_bit_mask).any()) {
-                SPDLOG_ERROR("voxel coord is out of range!!");
+                // SPDLOG_ERROR("voxel coord is out of range!!");
                 coord_pt[i] = {invalid_coord, i};
                 continue;
             }
