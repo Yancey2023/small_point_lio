@@ -119,8 +119,8 @@ namespace small_point_lio {
             }
             std::nth_element(candidates.begin(), candidates.begin() + static_cast<std::ptrdiff_t>(max_num) - 1, candidates.end());
             closest_pt.clear();
-            for (auto &it: candidates) {
-                closest_pt.push_back(it.point);
+            for (size_t i = 0; i < max_num; ++i) {
+                closest_pt.push_back(candidates[i].point);
             }
         }
     }

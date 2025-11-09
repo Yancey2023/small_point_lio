@@ -126,10 +126,12 @@ namespace small_point_lio {
                 return false;
             }
             Eigen::Matrix<state::value_type, state::DIM, 1> PHT = P.template block<state::DIM, 12>(0, 0) * measurement_result.H.transpose();
-            Eigen::Matrix<state::value_type, state::DIM, 1> K = PHT / (measurement_result.H * PHT.topRows(12) + measurement_result.laser_point_cov);
-            Eigen::Matrix<state::value_type, state::DIM, 1> dx;
-            dx.noalias() = K * measurement_result.z;
-            x.plus(dx);
+            state::value_type temp = measurement_result.H * PHT.topRows(12) + measurement_result.laser_point_cov;
+            if (temp == 0) [[unlikely]] {
+                temp = 1e-6;
+            }
+            Eigen::Matrix<state::value_type, state::DIM, 1> K = PHT / temp;
+            x.plus(K * measurement_result.z);
             P = P - K * measurement_result.H * P.template block<12, state::DIM>(0, 0);
             return true;
         }
@@ -161,10 +163,13 @@ namespace small_point_lio {
                 HPHT(i, i) += measurement_result.imu_meas_omg_cov;
                 HPHT(i + 3, i + 3) += measurement_result.imu_meas_acc_cov;
             }
-            Eigen::Matrix<state::value_type, state::DIM, 6> K = PHT * HPHT.inverse();
-            Eigen::Matrix<state::value_type, state::DIM, 1> dx = K * z;
+            Eigen::LDLT<Eigen::Matrix<state::value_type, 6, 6>> ldlt(HPHT);
+            if (ldlt.info() != Eigen::Success) [[unlikely]] {
+                return;
+            }
+            Eigen::Matrix<state::value_type, state::DIM, 6> K = PHT * ldlt.solve(Eigen::Matrix<state::value_type, 6, 6>::Identity());
+            x.plus(K * z);
             P -= K * HP;
-            x.plus(dx);
         }
     };
 
