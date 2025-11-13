@@ -27,6 +27,7 @@ namespace small_point_lio {
 
     class SmallIVox {
     private:
+        ankerl::unordered_dense::map<uint64_t, std::list<Eigen::Vector3f>::iterator> grids_map;
         float inv_resolution;
         size_t capacity;
         std::list<Eigen::Vector3f> grids_cache_;
@@ -39,7 +40,6 @@ namespace small_point_lio {
 
         void get_closest_point(const Eigen::Vector3f &pt, std::vector<Eigen::Vector3f> &closest_pt, size_t max_num = 5);
 
-        ankerl::unordered_dense::map<uint64_t, std::list<Eigen::Vector3f>::iterator> grids_map;
         [[nodiscard]] Eigen::Matrix<uint16_t, 3, 1> get_position_index(const Eigen::Vector3f &pt) const;
     };
 

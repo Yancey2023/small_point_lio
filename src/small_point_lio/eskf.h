@@ -69,54 +69,55 @@ namespace small_point_lio {
 
     class eskf {
     public:
-        using cov = Eigen::Matrix<state::value_type, state::DIM, state::DIM>;
-        using process_model = std::function<Eigen::Matrix<state::value_type, state::DIM, 1>(const state &)>;
-        using process_matrix = std::function<Eigen::Matrix<state::value_type, state::DIM, state::DIM>(const state &)>;
-        using process_noise_covariance = Eigen::Matrix<state::value_type, state::DIM, state::DIM>;
         using measurement_model_point = std::function<void(const state &, point_measurement_result &)>;
         using measurement_model_imu = std::function<void(const state &, imu_measurement_result &)>;
 
         state x;
-        cov P;
+        Eigen::Matrix<state::value_type, state::DIM, state::DIM> P;
 
     private:
-        process_model f_x;
-        process_matrix df_dx;
+        double time_predict_state_last = 0.0;
+        double time_predict_cov_last = 0.0;
         measurement_model_point h_point;
         measurement_model_imu h_imu;
 
     public:
         eskf() = default;
 
-        inline void init(const process_model &f_x, const process_matrix &df_dx, const measurement_model_point &h_point, const measurement_model_imu &h_imu) {
-            this->f_x = f_x;
-            this->df_dx = df_dx;
+        inline void init(const measurement_model_point &h_point, const measurement_model_imu &h_imu) {
             this->h_point = h_point;
             this->h_imu = h_imu;
         }
 
-        inline void predict_state(state::value_type &dt) {
-            auto f_ = f_x(x);
-            x.plus(f_ * dt);
+        inline void init_timestamp(double timestamp) {
+            time_predict_state_last = timestamp;
+            time_predict_cov_last = timestamp;
         }
 
-        inline void predict_prop_cov(state::value_type &dt, process_noise_covariance &Q) {
-            auto f_ = f_x(x);
-            auto df_dx_ = df_dx(x);
+        inline void predict_state(double timestamp) {
+            auto dt_state = static_cast<state::value_type>(timestamp - time_predict_state_last);
+            if (dt_state > 0) [[likely]] {
+                time_predict_state_last = timestamp;
+                x.position += x.velocity * dt_state;
+                x.rotation *= exp<state::value_type>(x.omg * dt_state);
+                x.velocity += (x.rotation * x.acceleration + x.gravity) * dt_state;
+            }
+        }
 
-            cov f_x1 = cov::Identity();
-            Eigen::Matrix<state::value_type, 3, 1> seg_SO3;
-
-            seg_SO3 = -1 * f_.template block<3, 1>(state::rotation_index, 0) * dt;
-            f_x1.template block<3, 3>(state::rotation_index, state::rotation_index) = exp<state::value_type>(seg_SO3);
-            df_dx_.template block<3, state::DIM>(state::rotation_index, 0) = A_matrix<state::value_type>(seg_SO3) * (df_dx_.template block<3, state::DIM>(state::rotation_index, 0));
-
-            seg_SO3 = -1 * f_.template block<3, 1>(state::offset_R_L_I_index, 0) * dt;
-            f_x1.template block<3, 3>(state::offset_R_L_I_index, state::offset_R_L_I_index) = exp<state::value_type>(seg_SO3);
-            df_dx_.template block<3, state::DIM>(state::offset_R_L_I_index, 0) = A_matrix<state::value_type>(seg_SO3) * (df_dx_.template block<3, state::DIM>(state::offset_R_L_I_index, 0));
-
-            f_x1 += df_dx_ * dt;
-            P = f_x1 * P * f_x1.transpose() + Q * (dt * dt);
+        inline void predict_cov(double timestamp, Eigen::Matrix<state::value_type, state::DIM, state::DIM> &Q) {
+            auto dt_cov = static_cast<state::value_type>(timestamp - time_predict_cov_last);
+            if (dt_cov > 0) [[likely]] {
+                time_predict_cov_last = timestamp;
+                Eigen::Matrix<state::value_type, 3, 1> seg_SO3 = -x.omg * dt_cov;
+                Eigen::Matrix<state::value_type, state::DIM, state::DIM> F = Eigen::Matrix<state::value_type, state::DIM, state::DIM>::Identity();
+                F.block<3, 3>(state::position_index, state::velocity_index).diagonal().fill(dt_cov);
+                F.block<3, 3>(state::rotation_index, state::rotation_index) = exp<state::value_type>(seg_SO3);
+                F.block<3, 3>(state::rotation_index, state::omg_index) = A_matrix<state::value_type>(seg_SO3) * dt_cov;
+                F.block<3, 3>(state::velocity_index, state::rotation_index) = -x.rotation * hat<state::value_type>(x.acceleration);
+                F.block<3, 3>(state::velocity_index, state::acceleration_index) = x.rotation * dt_cov;
+                F.block<3, 3>(state::velocity_index, state::gravity_index).diagonal().fill(dt_cov);
+                P = F * P * F.transpose() + Q * (dt_cov * dt_cov);
+            }
         }
 
         inline bool update_point() {
@@ -136,7 +137,7 @@ namespace small_point_lio {
             return true;
         }
 
-        inline void update_imu() {
+        inline bool update_imu() {
             imu_measurement_result measurement_result;
             h_imu(x, measurement_result);
             Eigen::Matrix<state::value_type, 6, 1> z = measurement_result.z;
@@ -165,11 +166,12 @@ namespace small_point_lio {
             }
             Eigen::LDLT<Eigen::Matrix<state::value_type, 6, 6>> ldlt(HPHT);
             if (ldlt.info() != Eigen::Success) [[unlikely]] {
-                return;
+                return false;
             }
             Eigen::Matrix<state::value_type, state::DIM, 6> K = PHT * ldlt.solve(Eigen::Matrix<state::value_type, 6, 6>::Identity());
             x.plus(K * z);
             P -= K * HP;
+            return true;
         }
     };
 

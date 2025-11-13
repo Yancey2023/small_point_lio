@@ -12,12 +12,6 @@ namespace small_point_lio {
 
     Estimator::Estimator() {// NOLINT(cppcoreguidelines-pro-type-member-init)
         kf.init(
-                [this](auto &&s) {
-                    return f_x(s);
-                },
-                [this](auto &&s) {
-                    return df_dx(s);
-                },
                 [this](auto &&s, auto &&measurement_result) {
                     return h_point(s, measurement_result);
                 },
@@ -41,24 +35,6 @@ namespace small_point_lio {
         cov.block<3, 3>(state::acceleration_index, state::acceleration_index).diagonal().fill(static_cast<state::value_type>(parameters->acceleration_cov));
         cov.block<3, 3>(state::bg_index, state::bg_index).diagonal().fill(static_cast<state::value_type>(parameters->bg_cov));
         cov.block<3, 3>(state::ba_index, state::ba_index).diagonal().fill(static_cast<state::value_type>(parameters->ba_cov));
-        return cov;
-    }
-
-    [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, 1> Estimator::f_x(const state &s) const {// NOLINT(readability-convert-member-functions-to-static)
-        Eigen::Matrix<state::value_type, state::DIM, 1> res = Eigen::Matrix<state::value_type, state::DIM, 1>::Zero();
-        res.segment<3>(state::position_index) = s.velocity;
-        res.segment<3>(state::rotation_index) = s.omg;
-        res.segment<3>(state::velocity_index) = s.rotation * s.acceleration + s.gravity;
-        return res;
-    }
-
-    [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> Estimator::df_dx(const state &s) const {// NOLINT(readability-convert-member-functions-to-static)
-        Eigen::Matrix<state::value_type, state::DIM, state::DIM> cov = Eigen::Matrix<state::value_type, state::DIM, state::DIM>::Zero();
-        cov.block<3, 3>(state::position_index, state::velocity_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
-        cov.block<3, 3>(state::velocity_index, state::rotation_index) = -s.rotation * hat<state::value_type>(s.acceleration);
-        cov.block<3, 3>(state::velocity_index, state::acceleration_index) = s.rotation;
-        cov.block<3, 3>(state::velocity_index, state::gravity_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
-        cov.block<3, 3>(state::rotation_index, state::omg_index) = Eigen::Matrix<state::value_type, 3, 3>::Identity();
         return cov;
     }
 
@@ -89,7 +65,7 @@ namespace small_point_lio {
 #else
         Eigen::Vector3f centroid = Eigen::Vector3f::Zero();
         for (const auto &p: nearest_points) {
-            centroid += p;
+            centroid.noalias() += p;
         }
         centroid /= static_cast<float>(nearest_points.size());
         Eigen::Matrix3f covariance = Eigen::Matrix3f::Zero();
