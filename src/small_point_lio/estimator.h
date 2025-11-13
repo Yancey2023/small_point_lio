@@ -36,10 +36,6 @@ namespace small_point_lio {
 
         [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> process_noise_cov() const;
 
-        [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, 1> f_x(const state &s) const;
-
-        [[nodiscard]] Eigen::Matrix<state::value_type, state::DIM, state::DIM> df_dx(const state &s) const;
-
         void h_point(const state &s, point_measurement_result &measurement_result);
 
         void h_imu(const state &s, imu_measurement_result &measurement_result);

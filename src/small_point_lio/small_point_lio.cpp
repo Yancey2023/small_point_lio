@@ -70,8 +70,7 @@ namespace small_point_lio {
                 } else {
                     time_current = std::max(preprocess.point_deque.back().timestamp, preprocess.imu_deque.back().timestamp);
                 }
-                time_predict_last = time_current;
-                time_update_last = time_current;
+                estimator.kf.init_timestamp(time_current);
                 // clear data
                 preprocess.point_deque.clear();
                 preprocess.dense_point_deque.clear();
@@ -108,12 +107,7 @@ namespace small_point_lio {
                 time_current = point_lidar_frame.timestamp;
 
                 // predict
-                auto dt = static_cast<state::value_type>(time_current - time_predict_last);
-                if (dt > 0) {
-                    // if dt equal 0, don't predict
-                    estimator.kf.predict_state(dt);
-                    time_predict_last = time_current;
-                }
+                estimator.kf.predict_state(time_current);
 
                 // update
                 estimator.point_lidar_frame = point_lidar_frame.position;
@@ -137,19 +131,12 @@ namespace small_point_lio {
                 time_current = imu_msg.timestamp;
 
                 // predict
-                auto dt = static_cast<state::value_type>(time_current - time_predict_last);
-                if (dt > 0) {
-                    // if dt equal 0, don't predict
-                    estimator.kf.predict_state(dt);
-                    time_predict_last = time_current;
-                }
+                estimator.kf.predict_state(time_current);
+                estimator.kf.predict_cov(time_current, Q);
 
                 // update
                 estimator.angular_velocity = imu_msg.angular_velocity.cast<state::value_type>();
                 estimator.linear_acceleration = imu_msg.linear_acceleration.cast<state::value_type>();
-                auto dt_cov = static_cast<state::value_type>(time_current - time_update_last);
-                time_update_last = time_current;
-                estimator.kf.predict_prop_cov(dt_cov, Q);
                 estimator.kf.update_imu();
 
                 preprocess.imu_deque.pop_front();

@@ -4,3 +4,4 @@
 /rosbag*
 /logs
 .env
+*.pcd
