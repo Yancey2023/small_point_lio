@@ -99,23 +99,23 @@ namespace small_point_lio {
                 time_msg.sec = std::floor(last_odometry.timestamp);
                 time_msg.nanosec = static_cast<uint32_t>((last_odometry.timestamp - time_msg.sec) * 1e9);
 
-                geometry_msgs::msg::TransformStamped base_link_to_lidar_frame_transform;
+                geometry_msgs::msg::TransformStamped lidar_frame_to_base_link_transform;
                 try {
-                    base_link_to_lidar_frame_transform = tf_buffer->lookupTransform(lidar_frame, "base_link", time_msg);
+                    lidar_frame_to_base_link_transform = tf_buffer->lookupTransform("base_link", lidar_frame, time_msg);
                 } catch (tf2::TransformException &ex) {
                     RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to %s: %s", lidar_frame.c_str(), ex.what());
                     return;
                 }
-                Eigen::Vector3f base_link_to_lidar_frame_T;
-                base_link_to_lidar_frame_T << static_cast<float>(base_link_to_lidar_frame_transform.transform.translation.x),
-                        static_cast<float>(base_link_to_lidar_frame_transform.transform.translation.y),
-                        static_cast<float>(base_link_to_lidar_frame_transform.transform.translation.z);
-                Eigen::Matrix3f base_link_to_lidar_frame_R =
+                Eigen::Vector3f lidar_frame_to_base_link_T;
+                lidar_frame_to_base_link_T << static_cast<float>(lidar_frame_to_base_link_transform.transform.translation.x),
+                        static_cast<float>(lidar_frame_to_base_link_transform.transform.translation.y),
+                        static_cast<float>(lidar_frame_to_base_link_transform.transform.translation.z);
+                Eigen::Matrix3f lidar_frame_to_base_link_R =
                         Eigen::Quaternionf(
-                                static_cast<float>(base_link_to_lidar_frame_transform.transform.rotation.w),
-                                static_cast<float>(base_link_to_lidar_frame_transform.transform.rotation.x),
-                                static_cast<float>(base_link_to_lidar_frame_transform.transform.rotation.y),
-                                static_cast<float>(base_link_to_lidar_frame_transform.transform.rotation.z))
+                                static_cast<float>(lidar_frame_to_base_link_transform.transform.rotation.w),
+                                static_cast<float>(lidar_frame_to_base_link_transform.transform.rotation.x),
+                                static_cast<float>(lidar_frame_to_base_link_transform.transform.rotation.y),
+                                static_cast<float>(lidar_frame_to_base_link_transform.transform.rotation.z))
                                 .toRotationMatrix();
                 sensor_msgs::msg::PointCloud2 msg;
                 msg.header.stamp = time_msg;
@@ -151,7 +151,7 @@ namespace small_point_lio {
                 Eigen::Vector3f transformed_point;
                 auto pointer = reinterpret_cast<float *>(msg.data.data());
                 for (const auto &point: pointcloud) {
-                    transformed_point = base_link_to_lidar_frame_R * point + base_link_to_lidar_frame_T;
+                    transformed_point = lidar_frame_to_base_link_R * point + lidar_frame_to_base_link_T;
                     *pointer = transformed_point.x();
                     ++pointer;
                     *pointer = transformed_point.y();
