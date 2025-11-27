@@ -27,7 +27,7 @@ namespace small_point_lio {
                         cloud.reserve(msg.points.size());
                         common::Point p;
                         for (const auto &pt: msg.points) {
-                            if ((pt.tag & 0b00110000) || (pt.tag & 0b00001100) || (pt.tag & 0b00000011)) [[unlikely]] {
+                            if ((pt.tag & 0b00110000) != 0b00000000 || (pt.tag & 0b00001100) != 0b00000000 || (pt.tag & 0b00000011) != 0b00000000) [[unlikely]] {
                                 continue;
                             }
                             p.position << pt.x, pt.y, pt.z;

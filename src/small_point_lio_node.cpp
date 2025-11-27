@@ -35,9 +35,12 @@ namespace small_point_lio {
                 "map_save",
                 [this, save_pcd, lidar_frame](const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res) {
                     if (!save_pcd) {
+                        res->success = false;
+                        res->message = "pcd save is disabled";
                         RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "pcd save is disabled");
                         return;
                     }
+                    res->success = true;
                     RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "waiting for pcd saving ...");
                     auto pointcloud_to_save = std::make_shared<std::vector<Eigen::Vector3f>>();
                     *pointcloud_to_save = pcd_mapping->get_points();
