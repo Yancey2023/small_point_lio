@@ -18,10 +18,6 @@
 #include <memory>
 #include <queue>
 #include <vector>
-// boost
-#include <boost/math/tools/precision.hpp>
-#include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/seq.hpp>
 // spdlog
 #include <spdlog/spdlog.h>
 // Eigen
@@ -33,5 +29,9 @@
 #include <yaml-cpp/yaml.h>
 // omp
 #include <omp.h>
+// ankerl
+#include <ankerl/unordered_dense.h>
+// liblzf
+#include <liblzf/lzf.h>
 
 #endif// PCH_H

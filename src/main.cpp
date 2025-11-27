@@ -1,17 +1,17 @@
 #include "common/common.h"
-#include "small_point_lio/small_point_lio.h"
+#include "io/pcd_io.h"
+#include "mapping/pcd_mapping.h"
 #include "pointcloud_cache/pointcloud_cache.hpp"
+#include "small_point_lio/small_point_lio.h"
 #include "visualize/visualize.h"
-#include "voxelgrid_sampling/voxelgrid_sampling.h"
 #include <livox_ros_driver2/msg/custom_msg.hpp>
-#include <small_point_lio/pch.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_storage/serialized_bag_message.hpp>
 #include <rosbag2_storage/storage_options.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <small_point_lio/pch.h>
 
 int main() {
     YAML::Node config = YAML::LoadFile(ROOT_DIR + "/config/config.yaml");
@@ -27,24 +27,19 @@ int main() {
         visualize.loop();
     });
 
-    std::vector<Eigen::Vector3f> pointcloud_map;
-    size_t downsampled_points_size = 1;
-    voxelgrid_sampling::VoxelgridSampling downsampler;
-    std::vector<Eigen::Vector3f> downsampled;
+    mapping::PCDMapping pcd_mapping(0.02);
 
+    size_t update_times = 0;
     pointcloud_cache::PointcloudCache pointcloud_cache(config["pointcloud_cache"]);
     pointcloud_cache.set_callback([&](const std::vector<Eigen::Vector3f> &pointcloud) {
-        pointcloud_map.insert(pointcloud_map.end(), pointcloud.begin(), pointcloud.end());
-        if (pointcloud_map.size() > 2000000 * downsampled_points_size) {// 200000000
-            downsampler.voxelgrid_sampling_omp(pointcloud_map, downsampled, 0.02, 12);
-            pointcloud_map = downsampled;
-            ++downsampled_points_size;
+        for (const auto &point: pointcloud) {
+            pcd_mapping.add_point(point);
         }
+        ++update_times;
         visualize.mutex.lock();
         visualize.pointcloud_realtime = pointcloud;
-        if (!downsampled.empty()) {
-            std::swap(visualize.pointcloud_map, downsampled);
-            downsampled.clear();
+        if (update_times % 50 == 0) {
+            visualize.pointcloud_map = pcd_mapping.get_points();
         }
         visualize.path.insert(visualize.path.end(), path_cache.begin(), path_cache.end());
         visualize.mutex.unlock();
@@ -117,7 +112,7 @@ int main() {
             rclcpp::Serialization<sensor_msgs::msg::Imu> serialization;
             serialization.deserialize_message(&extracted_serialized_msg, &msg);
             common::ImuMsg imu_msg;
-            imu_msg.timestamp = rclcpp::Time(msg.header.stamp).seconds();
+            imu_msg.timestamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9;
             imu_msg.linear_acceleration << msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z;
             imu_msg.angular_velocity << msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z;
             small_point_lio.on_imu_callback(imu_msg);
@@ -126,9 +121,8 @@ int main() {
         }
         small_point_lio.handle_once();
     }
+    io::pcd::write_pcd(ROOT_DIR + "/pcd/map.pcd", pcd_mapping.get_points());
     visualize.mutex.lock();
-    downsampler.voxelgrid_sampling_omp(visualize.pointcloud_map, downsampled, 0.02, 12);
-    visualize.pointcloud_map = std::move(downsampled);
     visualize.pointcloud_realtime.clear();
     visualize.is_running = false;
     visualize.mutex.unlock();

@@ -32,46 +32,46 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clan
 endif()
 
 # find Packages
-set(livox_ros_driver2_DIR livox_ros_driver2/share/livox_ros_driver2/cmake)
 find_package(spdlog REQUIRED QUIET)
 find_package(Eigen3 REQUIRED QUIET)
-find_package(PCL REQUIRED QUIET)
-find_package(rosbag2_cpp REQUIRED QUIET)
-find_package(rosbag2_storage REQUIRED QUIET)
-find_package(sensor_msgs REQUIRED QUIET)
-find_package(pcl_conversions REQUIRED QUIET)
 find_package(yaml-cpp REQUIRED QUIET)
 find_package(Pangolin REQUIRED QUIET)
-find_package(livox_ros_driver2 REQUIRED QUIET)
 find_package(OpenMP REQUIRED QUIET)
-
 if(OPENMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+set(livox_ros_driver2_DIR livox_ros_driver2/share/livox_ros_driver2/cmake)
+find_package(rosbag2_cpp REQUIRED QUIET)
+find_package(rosbag2_storage REQUIRED QUIET)
+find_package(livox_ros_driver2 REQUIRED QUIET)
+find_package(sensor_msgs REQUIRED QUIET)
+
 configure_file(include/param_deliver.h.in include/param_deliver.h @ONLY)
 
-file(GLOB_RECURSE SOURCE src/*.h src/*.hpp src/*.cpp)
+file(GLOB_RECURSE SOURCE src/*.cpp 3rdparty/*.c 3rdparty/*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCE})
-target_precompile_headers(${PROJECT_NAME} PRIVATE include/small_point_lio/pch.h)
+target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/include/small_point_lio/pch.h>")
 target_include_directories(${PROJECT_NAME} PUBLIC
     include
+    3rdparty
+    src
     ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${pcl_conversions_INCLUDE_DIRS}
     ${Pangolin_INCLUDE_DIRS}
+    ${rosbag2_cpp_INCLUDE_DIRS}
+    ${rosbag2_storage_INCLUDE_DIRS}
+    ${livox_ros_driver2_INCLUDE_DIRS}
+    ${sensor_msgs_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog
     Eigen3::Eigen
-    rosbag2_cpp::rosbag2_cpp
-    rosbag2_storage::rosbag2_storage
-    sensor_msgs::sensor_msgs_library
     yaml-cpp::yaml-cpp
-    livox_ros_driver2::livox_interfaces2__rosidl_generator_cpp
-    livox_ros_driver2::livox_interfaces2__rosidl_typesupport_cpp
-    ${livox_ros_driver2_LIBRARIES}
-    ${PCL_LIBRARIES}
     ${Pangolin_LIBRARIES} 
+    ${rosbag2_cpp_LIBRARIES}
+    ${rosbag2_storage_LIBRARIES}
+    ${livox_ros_driver2_LIBRARIES}
+    ${sensor_msgs_LIBRARIES}
 )

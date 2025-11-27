@@ -22,12 +22,11 @@ namespace small_point_lio {
     template<class T>
     static inline Eigen::Matrix<T, 3, 3> exp(const Eigen::Matrix<T, 3, 1> &ang) {
         T ang_norm = ang.norm();
-        constexpr T tolerance = 0.0000001;
-        if (ang_norm > tolerance) {
+        if (ang_norm < std::numeric_limits<T>::epsilon()) {
+            return Eigen::Matrix<T, 3, 3>::Identity();
+        } else {
             Eigen::Matrix<T, 3, 3> K = hat<T>(ang / ang_norm);
             return Eigen::Matrix<T, 3, 3>::Identity() + std::sin(ang_norm) * K + (1.0 - std::cos(ang_norm)) * K * K;
-        } else {
-            return Eigen::Matrix<T, 3, 3>::Identity();
         }
     }
 
@@ -36,9 +35,7 @@ namespace small_point_lio {
         static_assert(!std::numeric_limits<T>::is_integer);
         Eigen::Matrix<T, 3, 3> res;
         T squaredNorm = v.squaredNorm();
-        constexpr T tolerance = std::is_same_v<T, float> ? 1e-5f : 1e-11;
-        constexpr T sqaured_tolerance = tolerance * tolerance;
-        if (squaredNorm < sqaured_tolerance) {
+        if (squaredNorm < std::numeric_limits<T>::epsilon()) {
             res = Eigen::Matrix<T, 3, 3>::Identity();
         } else {
             T norm = std::sqrt(squaredNorm);

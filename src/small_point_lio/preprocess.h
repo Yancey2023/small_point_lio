@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "../common/common.h"
-#include "../voxelgrid_sampling/voxelgrid_sampling.h"
+#include "common/common.h"
+#include "voxelgrid_sampling/voxelgrid_sampling.h"
 #include "parameters.h"
 
 namespace small_point_lio {
