@@ -25,6 +25,10 @@
 #include <Eigen/Eigenvalues>
 // omp
 #include <omp.h>
+// ankerl
+#include <ankerl/unordered_dense.h>
+// liblzf
+#include <liblzf/lzf.h>
 // ros2
 #include <rclcpp/rclcpp.hpp>
 

@@ -92,7 +92,7 @@ Small Point-LIO is built in on and with the aid of the following open source pro
 |           [Eigen](https://gitlab.com/libeigen/eigen)           |           A C++ template library for linear algebra            | [Mozilla Public License Version 2.0](https://gitlab.com/libeigen/eigen/-/blob/master/LICENSE) |
 | [unordered_dense](https://github.com/martinus/unordered_dense) |          A fast & densely stored hashmap and hashset           |         [MIT License](https://github.com/martinus/unordered_dense/blob/main/LICENSE)          |
 |       [small_gicp](https://github.com/koide3/small_gicp)       | Efficient and parallel algorithms for point cloud registration |            [MIT License](https://github.com/koide3/small_gicp/blob/master/LICENSE)            |
-|        [PCL](https://github.com/PointCloudLibrary/pcl)         |                      Point Cloud Library                       |        [BSD License](https://github.com/PointCloudLibrary/pcl/blob/master/LICENSE.txt)        |
+|          [Open3D](https://github.com/isl-org/Open3D)           |            A Modern Library for 3D Data Processing             |                  [MIT License](github.com/isl-org/Open3D/blob/main/LICENSE)                   |
 
 ## License
 

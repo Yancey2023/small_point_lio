@@ -5,11 +5,10 @@
  */
 
 #include "small_point_lio_node.hpp"
+#include "io/pcd_io.h"
 #include "lidar_adapter/livox_lidar.h"
 #include "lidar_adapter/unitree_lidar.h"
 #include <geometry_msgs/msg/transform_stamped.hpp>
-#include <pcl/io/pcd_io.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace small_point_lio {
@@ -27,7 +26,9 @@ namespace small_point_lio {
         tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
         tf_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
-
+        if (save_pcd) {
+            pcd_mapping = std::make_unique<mapping::PCDMapping>(0.02);
+        }
         map_save_trigger = create_service<std_srvs::srv::Trigger>(
                 "map_save",
                 [this, save_pcd, lidar_frame](const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res) {
@@ -36,27 +37,10 @@ namespace small_point_lio {
                         return;
                     }
                     RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "waiting for pcd saving ...");
-                    auto pointcloud_to_save_copy = std::make_shared<std::vector<Eigen::Vector3f>>(pointcloud_to_save);
-                    std::thread([this, pointcloud_to_save_copy, lidar_frame]() {
-                        voxelgrid_sampling::VoxelgridSampling downsampler;
-                        std::vector<Eigen::Vector3f> downsampled;
-                        downsampler.voxelgrid_sampling_omp(*pointcloud_to_save_copy, downsampled, 0.02);
-                        pcl::PointCloud<pcl::PointXYZI> pcl_pointcloud;
-                        pcl_pointcloud.header.frame_id = lidar_frame;
-                        pcl_pointcloud.header.stamp = static_cast<uint64_t>(last_odometry.timestamp * 1e6);
-                        pcl_pointcloud.points.reserve(downsampled.size());
-                        for (const auto &point: downsampled) {
-                            pcl::PointXYZI new_point;
-                            new_point.x = point.x();
-                            new_point.y = point.y();
-                            new_point.z = point.z();
-                            pcl_pointcloud.points.push_back(new_point);
-                        }
-                        pcl_pointcloud.width = pcl_pointcloud.points.size();
-                        pcl_pointcloud.height = 1;
-                        pcl_pointcloud.is_dense = true;
-                        pcl::PCDWriter writer;
-                        writer.writeBinary(ROOT_DIR + "/pcd/scan.pcd", pcl_pointcloud);
+                    auto pointcloud_to_save = std::make_shared<std::vector<Eigen::Vector3f>>();
+                    *pointcloud_to_save = pcd_mapping->get_points();
+                    std::thread([pointcloud_to_save, lidar_frame]() {
+                        io::pcd::write_pcd(ROOT_DIR + "/pcd/scan.pcd", *pointcloud_to_save);
                         RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "save pcd success");
                     }).detach();
                 });
@@ -133,28 +117,57 @@ namespace small_point_lio {
                                 static_cast<float>(base_link_to_lidar_frame_transform.transform.rotation.y),
                                 static_cast<float>(base_link_to_lidar_frame_transform.transform.rotation.z))
                                 .toRotationMatrix();
-                pcl::PointCloud<pcl::PointXYZI> pcl_pointcloud;
-                pcl_pointcloud.points.reserve(pointcloud.size());
-                Eigen::Vector3f transformed_point;
-                for (const auto &point: pointcloud) {
-                    transformed_point = base_link_to_lidar_frame_R * point + base_link_to_lidar_frame_T;
-                    pcl::PointXYZI new_point;
-                    new_point.x = transformed_point.x();
-                    new_point.y = transformed_point.y();
-                    new_point.z = transformed_point.z();
-                    pcl_pointcloud.points.push_back(new_point);
-                }
-                pcl_pointcloud.width = pcl_pointcloud.points.size();
-                pcl_pointcloud.height = 1;
-                pcl_pointcloud.is_dense = true;
                 sensor_msgs::msg::PointCloud2 msg;
-                pcl::toROSMsg(pcl_pointcloud, msg);
                 msg.header.stamp = time_msg;
                 msg.header.frame_id = "odom";
+                msg.width = pointcloud.size();
+                msg.height = 1;
+                msg.fields.reserve(4);
+                sensor_msgs::msg::PointField field;
+                field.name = "x";
+                field.offset = 0;
+                field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+                field.count = 1;
+                msg.fields.push_back(field);
+                field.name = "y";
+                field.offset = 4;
+                field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+                field.count = 1;
+                msg.fields.push_back(field);
+                field.name = "z";
+                field.offset = 8;
+                field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+                field.count = 1;
+                msg.fields.push_back(field);
+                field.name = "intensity";
+                field.offset = 12;
+                field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+                field.count = 1;
+                msg.fields.push_back(field);
+                msg.is_bigendian = false;
+                msg.point_step = 16;
+                msg.row_step = msg.width * msg.point_step;
+                msg.data.resize(msg.row_step * msg.height);
+                Eigen::Vector3f transformed_point;
+                auto pointer = reinterpret_cast<float *>(msg.data.data());
+                for (const auto &point: pointcloud) {
+                    transformed_point = base_link_to_lidar_frame_R * point + base_link_to_lidar_frame_T;
+                    *pointer = transformed_point.x();
+                    ++pointer;
+                    *pointer = transformed_point.y();
+                    ++pointer;
+                    *pointer = transformed_point.z();
+                    ++pointer;
+                    *pointer = 0;
+                    ++pointer;
+                }
+                msg.is_dense = false;
                 pointcloud_publisher->publish(msg);
             }
             if (save_pcd) {
-                pointcloud_to_save.insert(pointcloud_to_save.end(), pointcloud.begin(), pointcloud.end());
+                for (const auto &point: pointcloud) {
+                    pcd_mapping->add_point(point);
+                }
             }
         });
         if (lidar_type == "livox") {

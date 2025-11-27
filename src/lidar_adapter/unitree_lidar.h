@@ -7,35 +7,9 @@
 #pragma once
 
 #include "base_lidar.h"
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <small_point_lio/pch.h>
-
-namespace unilidar_ros {
-    struct EIGEN_ALIGN16 Point {
-        PCL_ADD_POINT4D
-        PCL_ADD_INTENSITY
-        std::uint16_t ring;
-        float time;
-
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    };
-}// namespace unilidar_ros
-
-// clang-format off
-POINT_CLOUD_REGISTER_POINT_STRUCT(
-    unilidar_ros::Point,
-    (float, x, x)
-    (float, y, y)
-    (float, z, z)
-    (float, intensity, intensity)
-    (std::uint16_t, ring, ring)
-    (float, time, time)
-)
-// clang-format on
 
 namespace small_point_lio {
 
@@ -48,20 +22,24 @@ namespace small_point_lio {
             subscription = node->create_subscription<sensor_msgs::msg::PointCloud2>(
                     topic,
                     rclcpp::SensorDataQoS(),
-                    [callback](const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-                        pcl::PointCloud<unilidar_ros::Point> pl_orig;
-                        pcl::fromROSMsg(*msg, pl_orig);
-                        if (pl_orig.empty()) {
-                            return;
-                        }
-                        double msg_time = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
+                    [callback](const sensor_msgs::msg::PointCloud2 &msg) {
+                        sensor_msgs::PointCloud2ConstIterator<float> out_x(msg, "x");
+                        sensor_msgs::PointCloud2ConstIterator<float> out_y(msg, "y");
+                        sensor_msgs::PointCloud2ConstIterator<float> out_z(msg, "z");
+                        sensor_msgs::PointCloud2ConstIterator<float> out_timestamp(msg, "timestamp");
+                        double msg_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9;
+                        size_t size = msg.width * msg.height;
                         std::vector<common::Point> pointcloud;
-                        pointcloud.reserve(pl_orig.size());
-                        for (const auto &src: pl_orig.points) {
-                            common::Point p;
-                            p.position << src.x, src.y, src.z;
-                            p.timestamp = msg_time + src.time;
-                            pointcloud.push_back(p);
+                        pointcloud.reserve(size);
+                        for (size_t i = 0; i < size; ++i) {
+                            common::Point new_point;
+                            new_point.position << *out_x, *out_y, *out_z;
+                            new_point.timestamp = msg_time + *out_timestamp;
+                            pointcloud.push_back(new_point);
+                            ++out_x;
+                            ++out_y;
+                            ++out_z;
+                            ++out_timestamp;
                         }
                         callback(pointcloud);
                     });

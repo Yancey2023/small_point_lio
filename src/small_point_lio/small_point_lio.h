@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "../common/common.h"
+#include "common/common.h"
 #include "estimator.h"
 #include "parameters.h"
 #include "preprocess.h"

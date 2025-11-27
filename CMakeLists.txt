@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(small_point_lio)
 
-## use c++17
-set(CMAKE_CXX_STANDARD 17)
+## use c++20
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # enable color output
@@ -42,16 +42,15 @@ endif()
 
 find_package(ament_cmake_auto REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(PCL REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(pcl_ros REQUIRED)
-find_package(pcl_conversions REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(livox_ros_driver2 QUIET)
 if(OPENMP_FOUND)
@@ -71,12 +70,14 @@ endif()
 
 configure_file(include/param_deliver.h.in include/param_deliver.h @ONLY)
 
-file(GLOB_RECURSE SOURCE include/*.h src/*.cpp)
+file(GLOB_RECURSE SOURCE src/*.cpp 3rdparty/*.c 3rdparty/*.cpp)
 
 ament_auto_add_library(${PROJECT_NAME} SHARED ${SOURCE})
-target_precompile_headers(${PROJECT_NAME} PRIVATE include/small_point_lio/pch.h)
+target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/include/small_point_lio/pch.h>")
 target_include_directories(${PROJECT_NAME} PUBLIC
     include
+    3rdparty
+    src
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 target_link_libraries(${PROJECT_NAME}
@@ -85,13 +86,13 @@ target_link_libraries(${PROJECT_NAME}
 )
 ament_target_dependencies(${PROJECT_NAME}
     rclcpp
+    rclcpp_components
     rclpy
     sensor_msgs
     geometry_msgs
     nav_msgs
     tf2_ros
-    pcl_ros
-    pcl_conversions
+    tf2_geometry_msgs
     std_srvs
 )
 if(livox_ros_driver2_FOUND)

@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "../ankerl/unordered_dense.h"
 #include <small_point_lio/pch.h>
 
 namespace small_point_lio {

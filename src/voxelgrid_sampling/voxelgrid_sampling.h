@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "../common/common.h"
+#include "common/common.h"
 #include <small_point_lio/pch.h>
 
 /**
