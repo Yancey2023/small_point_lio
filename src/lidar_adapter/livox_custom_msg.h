@@ -13,7 +13,7 @@
 
 namespace small_point_lio {
 
-    class LivoxLidarAdapter : public LidarAdapterBase {
+    class LivoxCustomMsgAdapter : public LidarAdapterBase {
     private:
         rclcpp::Subscription<livox_ros_driver2::msg::CustomMsg>::SharedPtr subscription;
 
@@ -27,7 +27,9 @@ namespace small_point_lio {
                         cloud.reserve(msg.points.size());
                         common::Point p;
                         for (const auto &pt: msg.points) {
-                            if ((pt.tag & 0b00110000) || (pt.tag & 0b00001100) || (pt.tag & 0b00000011)) continue;
+                            if ((pt.tag & 0b00110000) || (pt.tag & 0b00001100) || (pt.tag & 0b00000011)) [[unlikely]] {
+                                continue;
+                            }
                             p.position << pt.x, pt.y, pt.z;
                             p.timestamp = static_cast<double>(msg.timebase + pt.offset_time) * 1e-9;
                             cloud.push_back(p);

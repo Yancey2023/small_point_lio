@@ -2,7 +2,7 @@ small_point_lio:
     ros__parameters:
         lidar_topic: /unilidar/cloud                # 点云话题名
         imu_topic: /unilidar/imu                    # IMU话题名
-        lidar_type: unilidar                        # 雷达类型
+        lidar_type: unilidar                        # 雷达类型 livox_custom_msg, livox_pointcloud2, custom_mid360_driver, unilidar
         lidar_frame: unitree_lidar                  # 雷达坐标系
         save_pcd: false                             # 是否保存点云
 

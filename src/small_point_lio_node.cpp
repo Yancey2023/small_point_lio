@@ -6,7 +6,9 @@
 
 #include "small_point_lio_node.hpp"
 #include "io/pcd_io.h"
-#include "lidar_adapter/livox_lidar.h"
+#include "lidar_adapter/custom_mid360_driver.h"
+#include "lidar_adapter/livox_custom_msg.h"
+#include "lidar_adapter/livox_pointcloud2.h"
 #include "lidar_adapter/unitree_lidar.h"
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -103,7 +105,7 @@ namespace small_point_lio {
                 try {
                     lidar_frame_to_base_link_transform = tf_buffer->lookupTransform("base_link", lidar_frame, time_msg);
                 } catch (tf2::TransformException &ex) {
-                    RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from base_link to %s: %s", lidar_frame.c_str(), ex.what());
+                    RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Failed to lookup transform from %s to base_link: %s", lidar_frame.c_str(), ex.what());
                     return;
                 }
                 Eigen::Vector3f lidar_frame_to_base_link_T;
@@ -170,14 +172,18 @@ namespace small_point_lio {
                 }
             }
         });
-        if (lidar_type == "livox") {
+        if (lidar_type == "livox_custom_msg") {
 #ifdef HAVE_LIVOX_DRIVER
-            lidar_adapter = std::make_unique<LivoxLidarAdapter>();
+            lidar_adapter = std::make_unique<LivoxCustomMsgAdapter>();
 #else
-            RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "Livox driver requested but not available!");
+            RCLCPP_ERROR(rclcpp::get_logger("small_point_lio"), "livox_custom_msg requested but not available!");
             rclcpp::shutdown();
             return;
 #endif
+        } else if (lidar_type == "livox_pointcloud2") {
+            lidar_adapter = std::make_unique<LivoxPointCloud2Adapter>();
+        } else if (lidar_type == "custom_mid360_driver") {
+            lidar_adapter = std::make_unique<CustomMid360DriverAdapter>();
         } else if (lidar_type == "unilidar") {
             lidar_adapter = std::make_unique<UnilidarAdapter>();
         } else {
