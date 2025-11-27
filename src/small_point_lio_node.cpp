@@ -29,7 +29,7 @@ namespace small_point_lio {
         tf_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
         if (save_pcd) {
-            pcd_mapping = std::make_unique<mapping::PCDMapping>(0.02);
+            pointcloud_mapping = std::make_unique<util::PointcloudMapping>(0.02);
         }
         map_save_trigger = create_service<std_srvs::srv::Trigger>(
                 "map_save",
@@ -43,7 +43,7 @@ namespace small_point_lio {
                     res->success = true;
                     RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "waiting for pcd saving ...");
                     auto pointcloud_to_save = std::make_shared<std::vector<Eigen::Vector3f>>();
-                    *pointcloud_to_save = pcd_mapping->get_points();
+                    *pointcloud_to_save = pointcloud_mapping->get_points();
                     std::thread([pointcloud_to_save, lidar_frame]() {
                         io::pcd::write_pcd(ROOT_DIR + "/pcd/scan.pcd", *pointcloud_to_save);
                         RCLCPP_INFO(rclcpp::get_logger("small_point_lio"), "save pcd success");
@@ -171,7 +171,7 @@ namespace small_point_lio {
             }
             if (save_pcd) {
                 for (const auto &point: pointcloud) {
-                    pcd_mapping->add_point(point);
+                    pointcloud_mapping->add_point(point);
                 }
             }
         });

@@ -7,9 +7,9 @@
 #pragma once
 
 #include "base_lidar.h"
+#include <pch.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
-#include <small_point_lio/pch.h>
 
 namespace small_point_lio {
 

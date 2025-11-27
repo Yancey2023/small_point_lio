@@ -10,7 +10,7 @@
  * copy from https://github.com/koide3/small_gicp, modified to fit our need.
  * small_gicp is open source under the MIT license: https://github.com/koide3/small_gicp/blob/master/LICENSE
  */
-namespace voxelgrid_sampling {
+namespace util {
 
     /// @brief Fast floor (https://stackoverflow.com/questions/824118/why-is-floor-so-slow).
     /// @param pt  Float vector
@@ -280,4 +280,4 @@ namespace voxelgrid_sampling {
         downsampled.resize(num_points);
     }
 
-}// namespace voxelgrid_sampling
+}// namespace util

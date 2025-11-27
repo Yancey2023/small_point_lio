@@ -6,24 +6,24 @@
 
 #pragma once
 
-#include <small_point_lio/pch.h>
+#include <pch.h>
 
-namespace mapping {
+namespace util {
 
-    class PCDMappingGrid {
+    class PointcloudMappingGrid {
     private:
         size_t points_size = 0;
         Eigen::Vector3f points_sum = Eigen::Vector3f::Zero();
 
     public:
-        PCDMappingGrid() = default;
+        PointcloudMappingGrid() = default;
 
         void add_point(const Eigen::Vector3f &point);
 
         [[nodiscard]] Eigen::Vector3f get_point() const;
     };
 
-    class PCDMapping {
+    class PointcloudMapping {
     private:
         using GridKeyType = Eigen::Vector3i;
 
@@ -31,19 +31,21 @@ namespace mapping {
             uint64_t operator()(const GridKeyType &v) const;
         };
 
-        ankerl::unordered_dense::map<GridKeyType, PCDMappingGrid, GridKeyTypeHasher> grids_map;
+        ankerl::unordered_dense::map<GridKeyType, PointcloudMappingGrid, GridKeyTypeHasher> grids_map;
         float inv_resolution;
 
     public:
-        explicit PCDMapping(float resolution);
+        explicit PointcloudMapping(float resolution);
 
     private:
-        [[nodiscard]] GridKeyType get_position_index(const Eigen::Vector3f &pt) const;
+        [[nodiscard]] GridKeyType get_position_index(const Eigen::Vector3f &point) const;
 
     public:
         void add_point(const Eigen::Vector3f &point);
 
+        void add_pointcloud(const std::vector<Eigen::Vector3f> &point);
+
         [[nodiscard]] std::vector<Eigen::Vector3f> get_points() const;
     };
 
-}// namespace mapping
+}// namespace util

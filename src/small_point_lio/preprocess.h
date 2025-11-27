@@ -7,8 +7,8 @@
 #pragma once
 
 #include "common/common.h"
-#include "voxelgrid_sampling/voxelgrid_sampling.h"
 #include "parameters.h"
+#include "util/voxelgrid_sampling.h"
 
 namespace small_point_lio {
 
@@ -23,7 +23,7 @@ namespace small_point_lio {
         double last_timestamp_lidar = -1;
         double last_timestamp_dense_point = -1;
         double last_timestamp_imu = -1;
-        voxelgrid_sampling::VoxelgridSampling downsampler;
+        util::VoxelgridSampling downsampler;
         std::vector<common::Point> filtered_points;
         std::vector<common::Point> dense_points;
         std::vector<common::Point> processed_pointcloud;

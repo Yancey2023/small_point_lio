@@ -31,7 +31,7 @@ namespace small_point_lio {
                         std::vector<common::Point> pointcloud;
                         pointcloud.reserve(size);
                         for (size_t i = 0; i < size; ++i) {
-                            if ((*out_tag & 0b00110000) == 0b00000000 && (*out_tag & 0b00001100) == 0b00000000 && (*out_tag & 0b00000011) == 0b00000000) [[unlikely]] {
+                            if ((*out_tag & 0b00111111) == 0b00000000) {
                                 common::Point new_point;
                                 new_point.position << *out_x, *out_y, *out_z;
                                 new_point.timestamp = *out_timestamp * 1e-9;

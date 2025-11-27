@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <small_point_lio/pch.h>
+#include <pch.h>
 
 /**
  * copy from https://github.com/isl-org/Open3D, modified to fit our need.

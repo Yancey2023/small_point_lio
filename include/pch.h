@@ -20,9 +20,9 @@
 #include <vector>
 // Eigen
 #include <Eigen/Core>
+#include <Eigen/Eigenvalues>
 #include <Eigen/Geometry>
 #include <Eigen/Sparse>
-#include <Eigen/Eigenvalues>
 // omp
 #include <omp.h>
 // ankerl

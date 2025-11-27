@@ -8,15 +8,15 @@
 
 #include "common/common.h"
 #include "lidar_adapter/base_lidar.h"
-#include "mapping/pcd_mapping.h"
 #include "small_point_lio/small_point_lio.h"
+#include "util/pointcloud_mapping.h"
 #include <nav_msgs/msg/odometry.hpp>
+#include <pch.h>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/subscription.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <small_point_lio/pch.h>
 #include <std_srvs/srv/trigger.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.hpp>
@@ -37,7 +37,7 @@ namespace small_point_lio {
         std::shared_ptr<tf2_ros::TransformListener> tf_listener;
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr map_save_trigger;
         common::Odometry last_odometry;
-        std::unique_ptr<mapping::PCDMapping> pcd_mapping;
+        std::unique_ptr<util::PointcloudMapping> pointcloud_mapping;
 
     public:
         explicit SmallPointLioNode(const rclcpp::NodeOptions &options);

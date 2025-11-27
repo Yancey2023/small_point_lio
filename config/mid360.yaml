@@ -2,9 +2,9 @@ small_point_lio:
     ros__parameters:
         lidar_topic: /livox/lidar                  # 点云话题名
         imu_topic: /livox/imu                      # IMU话题名
-        lidar_type: livox_pointcloud2              # 雷达类型 livox_custom_msg, livox_pointcloud2, custom_mid360_driver, unilidar
+        lidar_type: livox_custom_msg              # 雷达类型 livox_custom_msg, livox_pointcloud2, custom_mid360_driver, unilidar
         lidar_frame: livox_frame                   # 雷达坐标系
-        save_pcd: false                            # 是否保存点云
+        save_pcd: true                            # 是否保存点云
 
         # 点云过滤
         point_filter_num: 1                        # 多少个点取一个点

@@ -7,7 +7,7 @@
 #pragma once
 
 #include "common/common.h"
-#include <small_point_lio/pch.h>
+#include <pch.h>
 
 namespace small_point_lio {
 

@@ -23,18 +23,18 @@ namespace small_point_lio {
                     topic,
                     rclcpp::SensorDataQoS(),
                     [callback](const livox_ros_driver2::msg::CustomMsg &msg) {
-                        std::vector<common::Point> cloud;
-                        cloud.reserve(msg.points.size());
-                        common::Point p;
-                        for (const auto &pt: msg.points) {
-                            if ((pt.tag & 0b00110000) != 0b00000000 || (pt.tag & 0b00001100) != 0b00000000 || (pt.tag & 0b00000011) != 0b00000000) [[unlikely]] {
-                                continue;
+                        std::vector<common::Point> pointcloud;
+                        pointcloud.reserve(msg.points.size());
+                        common::Point new_point;
+                        for (const auto &point: msg.points) {
+                            if ((point.tag & 0b00111111) == 0b00000000) {
+                                common::Point new_point;
+                                new_point.position << point.x, point.y, point.z;
+                                new_point.timestamp = static_cast<double>(msg.timebase + point.offset_time) / 1e9;
+                                pointcloud.push_back(new_point);
                             }
-                            p.position << pt.x, pt.y, pt.z;
-                            p.timestamp = static_cast<double>(msg.timebase + pt.offset_time) * 1e-9;
-                            cloud.push_back(p);
                         }
-                        callback(cloud);
+                        callback(pointcloud);
                     });
         }
     };

@@ -9,7 +9,7 @@
 #include "eskf.h"
 #include "parameters.h"
 #include "small_ivox.h"
-#include <small_point_lio/pch.h>
+#include <pch.h>
 
 namespace small_point_lio {
 
