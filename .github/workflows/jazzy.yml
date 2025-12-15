@@ -33,7 +33,7 @@ jobs:
           ros-jazzy-tf2-ros
       
       - name: 签出项目
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 编译
         run: source /opt/ros/jazzy/setup.sh && colcon build

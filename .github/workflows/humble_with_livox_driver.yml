@@ -48,7 +48,7 @@ jobs:
           sudo cp -r install/livox_ros_driver2 /opt/ros/humble/livox_ros_driver2/
       
       - name: 签出项目
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 编译
         run: source /opt/ros/humble/setup.sh && colcon build
