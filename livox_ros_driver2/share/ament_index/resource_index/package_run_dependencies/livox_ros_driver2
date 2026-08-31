@@ -1,1 +1,0 @@
-rclcpp;rclcpp_components;std_msgs;sensor_msgs;rcutils;pcl_conversions;rcl_interfaces;libpcl-all-dev;git;apr;rosbag2;rosidl_default_runtime;ament_lint_auto;ament_lint_common

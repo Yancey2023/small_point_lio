@@ -42,7 +42,6 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-set(livox_ros_driver2_DIR livox_ros_driver2/share/livox_ros_driver2/cmake)
 find_package(rosbag2_cpp REQUIRED QUIET)
 find_package(rosbag2_storage REQUIRED QUIET)
 find_package(livox_ros_driver2 REQUIRED QUIET)
