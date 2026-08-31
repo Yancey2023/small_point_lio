@@ -2,16 +2,16 @@ small_point_lio:
     ros__parameters:
         lidar_topic: /livox/lidar                  # 点云话题名
         imu_topic: /livox/imu                      # IMU话题名
-        lidar_type: livox_custom_msg              # 雷达类型 livox_custom_msg, livox_pointcloud2, custom_mid360_driver, unilidar
+        lidar_type: livox_custom_msg               # 雷达类型 livox_custom_msg, livox_pointcloud2, custom_mid360_driver, unilidar
         lidar_frame: livox_frame                   # 雷达坐标系
-        save_pcd: true                            # 是否保存点云
+        save_pcd: false                            # 是否保存点云
 
         # 点云过滤
         point_filter_num: 1                        # 多少个点取一个点
         min_distance: 0.5                          # 点云半径最小值，小于该值会被过滤
         max_distance: 1000.0                       # 点云半径最大值，大于该值会被过滤
         space_downsample: true                     # 是否启用点云降采样
-        space_downsample_leaf_size: 0.5            # 点云降采样时使用的栅格大小
+        space_downsample_leaf_size: 0.2            # 点云降采样时使用的栅格大小
 
         # IMU处理
         gravity: [0.0, 0.0, -9.810]                # 重力
@@ -22,7 +22,7 @@ small_point_lio:
         acc_norm: 1.0                              # IMU的加速度模长
 
         # 地图
-        map_resolution: 0.5                        # 地图分辨率
+        map_resolution: 0.2                        # 地图分辨率
         init_map_size: 10                          # 接收到多少个点才初始化地图
 
         # 雷达与IMU相对位姿
