@@ -1,17 +1,17 @@
 #include "common/common.h"
 #include "io/pcd_io.h"
-#include "mapping/pcd_mapping.h"
-#include "pointcloud_cache/pointcloud_cache.hpp"
 #include "small_point_lio/small_point_lio.h"
+#include "util/pointcloud_cache.h"
+#include "util/pointcloud_mapping.h"
 #include "visualize/visualize.h"
 #include <livox_ros_driver2/msg/custom_msg.hpp>
+#include <pch.h>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_storage/serialized_bag_message.hpp>
 #include <rosbag2_storage/storage_options.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
-#include <small_point_lio/pch.h>
 
 int main() {
     YAML::Node config = YAML::LoadFile(ROOT_DIR + "/config/config.yaml");
@@ -27,10 +27,10 @@ int main() {
         visualize.loop();
     });
 
-    mapping::PCDMapping pcd_mapping(0.02);
+    util::PointcloudMapping pcd_mapping(0.02);
 
     size_t update_times = 0;
-    pointcloud_cache::PointcloudCache pointcloud_cache(config["pointcloud_cache"]);
+    util::PointcloudCache pointcloud_cache(config["pointcloud_cache"]);
     pointcloud_cache.set_callback([&](const std::vector<Eigen::Vector3f> &pointcloud) {
         for (const auto &point: pointcloud) {
             pcd_mapping.add_point(point);

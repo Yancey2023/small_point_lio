@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <small_point_lio/pch.h>
+#include <pch.h>
 
-namespace pointcloud_cache {
+namespace util {
 
     class PointcloudCache {
     public:
@@ -25,4 +25,4 @@ namespace pointcloud_cache {
         std::function<void(const std::vector<Eigen::Vector3f> &pointcloud)> callback;
     };
 
-}// namespace pointcloud_cache
+}// namespace util

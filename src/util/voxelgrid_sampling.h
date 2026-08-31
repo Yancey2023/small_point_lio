@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include "../common/common.h"
-#include <small_point_lio/pch.h>
+#include "common/common.h"
+#include <pch.h>
 
 /**
  * copy from https://github.com/koide3/small_gicp, modified to fit our need.
  * small_gicp is open source under the MIT license: https://github.com/koide3/small_gicp/blob/master/LICENSE
  */
-namespace voxelgrid_sampling {
+namespace util {
 
     class VoxelgridSampling {
     private:
@@ -27,4 +27,4 @@ namespace voxelgrid_sampling {
         void voxelgrid_sampling_omp(const std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &downsampled, double leaf_size, int num_threads = 4);
     };
 
-}// namespace voxelgrid_sampling
+}// namespace util

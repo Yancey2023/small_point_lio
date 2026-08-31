@@ -4,9 +4,9 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  */
 
-#include "pointcloud_cache.hpp"
+#include "pointcloud_cache.h"
 
-namespace pointcloud_cache {
+namespace util {
 
     PointcloudCache::PointcloudCache(const YAML::Node &node) {
         update_interval = node["update_interval"].as<double>();
@@ -26,4 +26,4 @@ namespace pointcloud_cache {
         }
     }
 
-}// namespace pointcloud_cache
+}// namespace util

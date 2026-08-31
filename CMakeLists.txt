@@ -53,7 +53,7 @@ configure_file(include/param_deliver.h.in include/param_deliver.h @ONLY)
 file(GLOB_RECURSE SOURCE src/*.cpp 3rdparty/*.c 3rdparty/*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCE})
-target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/include/small_point_lio/pch.h>")
+target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h>")
 target_include_directories(${PROJECT_NAME} PUBLIC
     include
     3rdparty
