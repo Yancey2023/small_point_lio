@@ -113,7 +113,7 @@ namespace small_point_lio {
                 F.block<3, 3>(state::position_index, state::velocity_index).diagonal().fill(dt_cov);
                 F.block<3, 3>(state::rotation_index, state::rotation_index) = exp<state::value_type>(seg_SO3);
                 F.block<3, 3>(state::rotation_index, state::omg_index) = A_matrix<state::value_type>(seg_SO3) * dt_cov;
-                F.block<3, 3>(state::velocity_index, state::rotation_index) = -x.rotation * hat<state::value_type>(x.acceleration);
+                F.block<3, 3>(state::velocity_index, state::rotation_index) = -x.rotation * hat<state::value_type>(x.acceleration) * dt_cov;
                 F.block<3, 3>(state::velocity_index, state::acceleration_index) = x.rotation * dt_cov;
                 F.block<3, 3>(state::velocity_index, state::gravity_index).diagonal().fill(dt_cov);
                 P = F * P * F.transpose() + Q * (dt_cov * dt_cov);
@@ -149,7 +149,7 @@ namespace small_point_lio {
                     PHT.col(i) = P.col(state::omg_index + i) + P.col(state::bg_index + i);
                     HP.row(i) = P.row(state::omg_index + i) + P.row(state::bg_index + i);
                 }
-                if (!measurement_result.satu_check[i]) {
+                if (!measurement_result.satu_check[i + 3]) {
                     PHT.col(i + 3) = P.col(state::acceleration_index + i) + P.col(state::ba_index + i);
                     HP.row(i + 3) = P.row(state::acceleration_index + i) + P.row(state::ba_index + i);
                 }
@@ -158,7 +158,7 @@ namespace small_point_lio {
                 if (!measurement_result.satu_check[i]) {
                     HPHT.col(i) = HP.col(state::omg_index + i) + HP.col(state::bg_index + i);
                 }
-                if (!measurement_result.satu_check[i]) {
+                if (!measurement_result.satu_check[i + 3]) {
                     HPHT.col(i + 3) = HP.col(state::acceleration_index + i) + HP.col(state::ba_index + i);
                 }
                 HPHT(i, i) += measurement_result.imu_meas_omg_cov;
