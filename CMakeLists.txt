@@ -40,12 +40,12 @@ endif()
 ## Find dependencies ##
 #######################
 
+find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(rclpy REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -80,27 +80,19 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     src
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME} PUBLIC
     Eigen3::Eigen
     ${PCL_LIBRARIES}
+    ${rclcpp_TARGETS}
+    ${rclcpp_components_TARGETS}
+    ${sensor_msgs_TARGETS}
+    ${geometry_msgs_TARGETS}
+    ${nav_msgs_TARGETS}
+    ${tf2_ros_TARGETS}
+    ${tf2_geometry_msgs_TARGETS}
+    ${std_srvs_TARGETS}
+    ${livox_ros_driver2_TARGETS}
 )
-ament_target_dependencies(${PROJECT_NAME}
-    rclcpp
-    rclcpp_components
-    rclpy
-    sensor_msgs
-    geometry_msgs
-    nav_msgs
-    tf2_ros
-    tf2_geometry_msgs
-    std_srvs
-)
-if(livox_ros_driver2_FOUND)
-    ament_target_dependencies(${PROJECT_NAME}
-        livox_ros_driver2
-    )
-endif()
-
 rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN small_point_lio::SmallPointLioNode
     EXECUTABLE ${PROJECT_NAME}_node

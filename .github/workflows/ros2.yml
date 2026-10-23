@@ -1,0 +1,91 @@
+name: ROS 2 CI
+
+on:
+  push:
+    branches: ["ros2"]
+  pull_request:
+    branches: ["ros2"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: "Build ${{ matrix.ros_distro }} (Livox: ${{ matrix.with_livox }})"
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ros_distro: humble
+            image: ros:humble-ros-base-jammy
+            with_livox: false
+          - ros_distro: humble
+            image: ros:humble-ros-base-jammy
+            with_livox: true
+          - ros_distro: jazzy
+            image: ros:jazzy-ros-base-noble
+            with_livox: false
+          - ros_distro: jazzy
+            image: ros:jazzy-ros-base-noble
+            with_livox: true
+          - ros_distro: lyrical
+            image: ros:lyrical-ros-base-resolute
+            with_livox: false
+          - ros_distro: lyrical
+            image: ros:lyrical-ros-base-resolute
+            with_livox: true
+    env:
+      ROS_DISTRO: ${{ matrix.ros_distro }}
+      WITH_LIVOX: ${{ matrix.with_livox }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install --no-install-recommends -y \
+            build-essential \
+            cmake \
+            git \
+            libeigen3-dev \
+            libpcl-dev \
+            ros-${ROS_DISTRO}-ament-cmake-auto \
+            ros-${ROS_DISTRO}-rclcpp-components \
+            ros-${ROS_DISTRO}-rclpy \
+            ros-${ROS_DISTRO}-sensor-msgs \
+            ros-${ROS_DISTRO}-geometry-msgs \
+            ros-${ROS_DISTRO}-nav-msgs \
+            ros-${ROS_DISTRO}-tf2-ros \
+            ros-${ROS_DISTRO}-tf2-geometry-msgs \
+            ros-${ROS_DISTRO}-std-srvs \
+            ros-${ROS_DISTRO}-pcl-ros \
+            ros-${ROS_DISTRO}-pcl-conversions
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Fetch Livox custom messages
+        if: matrix.with_livox
+        run: |
+          git clone --depth 1 \
+            https://github.com/Yancey2023/livox_custom_msg.git \
+            /tmp/livox_custom_msg
+
+      - name: Build package
+        shell: bash
+        run: |
+          source /opt/ros/${ROS_DISTRO}/setup.bash
+          if [ "${WITH_LIVOX}" = "true" ]; then
+            colcon build \
+              --base-paths "${GITHUB_WORKSPACE}" \
+                /tmp/livox_custom_msg \
+              --event-handlers console_direct+
+          else
+            colcon build \
+              --base-paths "${GITHUB_WORKSPACE}" \
+              --event-handlers console_direct+
+          fi
